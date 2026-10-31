@@ -4,42 +4,50 @@ Terakhir diperbarui: 2026-11-01
 
 ## Fase saat ini
 
-Fase 0 — Spesifikasi dan fondasi dokumen.
+Fase 1 — Fondasi (Flutter init selesai; Supabase belum tersambung).
 
 ## Sudah selesai
 
-- `docs/REQUIREMENTS.md` dibuat dari spesifikasi PDF tanpa mengubah maksud.
-- Dokumen kontrak kerja awal dibuat: `AGENTS.md`, `DECISIONS.md`, `CURRENT_STATE.md`, `CHANGELOG.md`, `MASTER_BLUEPRINT.md`.
+- `docs/REQUIREMENTS.md` dari spesifikasi PDF.
+- Dokumen tata kelola: `AGENTS.md`, `DECISIONS.md`, `CURRENT_STATE.md`, `CHANGELOG.md`, `MASTER_BLUEPRINT.md`.
+- `docs/DATABASE_SCHEMA.md` (DRAFT v0.1).
+- `supabase/migrations/20261101000000_initial_schema.sql` (DRAFT, belum dijalankan).
+- D-01, D-02, D-03, D-04, D-07 disetujui.
+- Proyek Flutter terinisialisasi di root repo:
+  - Package: `jeju_app`, org `com.jeju`.
+  - Platform yang di-generate: android, ios, web, linux, macos, windows.
+  - Dependensi awal: `supabase_flutter`, `flutter_dotenv`.
+  - `.env.example` dan `.gitignore` untuk secrets.
+  - `lib/main.dart` dengan `JeJuApp`, `test/widget_test.dart`.
+- Verifikasi: `dart format`, `flutter analyze`, `flutter test` — lihat CHANGELOG untuk hasil nyata.
 
 ## Sedang dikerjakan
 
-- Validasi keputusan terbuka.
-- Penyusunan arsitektur dan skema database setelah keputusan kunci disetujui.
+- Belum ada. Siap masuk Fase 2 (Supabase + migration + RLS test).
 
 ## Belum dimulai
 
-- Inisialisasi proyek Flutter.
-- Setup Supabase/PostgreSQL.
-- RLS dan migration.
-- UI/UX.
+- Supabase project (user harus membuat).
+- Menjalankan migration dan menguji RLS isolasi.
+- Auth dasar, business/anggota.
+- Kerangka UI (Fase 3).
 - Modul pesanan, pembayaran, keuangan, laporan.
 - Offline/sync.
-- Build dan tes platform.
+- Build & test per platform.
 
-## Keputusan yang menunggu persetujuan
+## Keputusan
 
-- D-01: multi-usaha per pengguna.
-- D-02: metode pengakuan pendapatan.
-- D-03: transaksi offline.
-- D-04: larangan hapus transaksi terkonfirmasi.
-- D-07: IDR saja untuk versi awal.
+- D-01, D-02, D-03, D-04, D-07: APPROVED (2026-11-01).
+- D-05, D-06, D-08: PROPOSED.
 
-## Tes
+## Batas yang diakui
 
-Belum ada kode aplikasi. Belum ada `format`, `analyze`, atau tes yang dijalankan.
+- Build iOS dan build native Windows tidak dapat diverifikasi di Codespaces Linux.
+- Migration SQL belum dijalankan di Supabase mana pun.
+- `docs/DATABASE_SCHEMA.md` masih DRAFT; pertanyaan Q1–Q7 belum diputuskan.
 
 ## Langkah berikutnya
 
-1. Pengguna meninjau `DECISIONS.md`.
-2. Setujui/tolak D-01, D-02, D-03, D-04, dan D-07.
-3. Lanjut ke penyusunan arsitektur dan `DATABASE_SCHEMA.md`.
+1. User membuat Supabase project + mengisi `.env`.
+2. Jalankan migration `20261101000000_initial_schema.sql`.
+3. Uji isolasi RLS dasar.
