@@ -66,3 +66,14 @@
 
 ### Notes
 - Warning `no files matched pattern: supabase/seed.sql` bukan error; seed.sql belum dibuat.
+
+## 2026-11-01 — Fase 1: pgTAP RLS isolation test (Langkah 6)
+
+### Added
+- `supabase/tests/rls_isolation.sql` — pgTAP test self-contained untuk isolasi RLS.
+  - 10 assertion: 2 tabel, 2 RLS-enabled, 3 isolasi select, 1 write isolation, dst.
+  - Fixture di dalam transaksi, diakhiri `rollback`.
+
+### Tests
+- `supabase test db` — All tests successful (10 tests), sesuai output terminal pengguna.
+- Tidak ada klaim lulus tanpa log yang sesuai.
