@@ -213,3 +213,27 @@
 - `flutter analyze` — No issues found.
 - `flutter test` — 19 tests passed.
 - `supabase test db` — Files=3, Tests=36, Result: PASS.
+
+## 2026-11-01 — Fase 4: Pesanan (Langkah 10)
+
+### Added
+- Migration `20261101030000_create_order_rpc.sql`: RPC `create_order` + `orders` updated_at trigger. Format `order_number` Q5-A (`YYYYMMDD-NNN` per bisnis/hari, advisory lock + unique).
+- Migration `20261101030100_change_order_status_and_cancel_rpc.sql`: RPC `change_order_status` (menolak `cancelled`, harus via `cancel_order`) + `cancel_order` (menolak `ALREADY_CANCELLED`), keduanya menulis `order_status_history` atomik.
+- pgTAP `create_order_rpc.sql` (11 test) + `change_order_status_rpc.sql` (12 test).
+- `lib/features/orders/order.dart` (Order, OrderItem, OrderStatus, OrderItemInput).
+- `lib/features/orders/orders_service.dart` + `supabase_orders_service.dart`.
+- `lib/features/orders/orders_providers.dart` (`ordersServiceProvider`, `ordersProvider`, `orderStatusesProvider`).
+- UI: `OrdersScreen` (tab filter, empty/loading/error), `OrderFormSheet` (item dinamis, subtotal real-time), `OrderListTile`, `OrderDetailSheet` (change status & cancel dialog).
+- Widget test `test/features/orders/orders_screen_test.dart` (7 test).
+- `test/fake/fake_services.dart`: `FakeOrdersService`.
+
+### Changed
+- `lib/main.dart`: override `ordersServiceProvider` di `ProviderScope`.
+- `test/features/shell/navigation_test.dart`: pakai `OrdersScreen` nyata (bukan placeholder) + override `ordersServiceProvider` & `customersServiceProvider`.
+- `docs/DATABASE_SCHEMA.md`: bagian RPC + format `order_number` Q5-A.
+- `AGENTS.md`: konvensi pgTAP (hindari `order by created_at` di satu transaksi).
+
+### Tests
+- `flutter analyze` — No issues found.
+- `flutter test` — 26 tests passed (1 smoke + 4 auth + 3 onboarding + 5 navigasi + 6 customers + 7 orders).
+- `supabase test db` — Files=5, Tests=59, Result: PASS.

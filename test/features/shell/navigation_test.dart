@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:jeju_app/app.dart';
 import 'package:jeju_app/core/models/app_user.dart';
 import 'package:jeju_app/core/providers.dart';
+import 'package:jeju_app/features/customers/customers_providers.dart';
+import 'package:jeju_app/features/orders/orders_providers.dart';
 
 import '../../fake/fake_services.dart';
 
@@ -12,6 +14,8 @@ Widget _app({required FakeAuthService auth, required FakeBusinessService biz}) {
     overrides: [
       authServiceProvider.overrideWithValue(auth),
       businessServiceProvider.overrideWithValue(biz),
+      ordersServiceProvider.overrideWithValue(FakeOrdersService()),
+      customersServiceProvider.overrideWithValue(FakeCustomersService()),
     ],
     child: const JeJuApp(),
   );
@@ -78,10 +82,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Modul pesanan akan tersedia di Fase 4.'),
-        findsOneWidget,
-      );
+      expect(find.text('Belum ada pesanan'), findsOneWidget);
     });
 
     testWidgets('tap Lainnya membuka MoreScreen dengan menu', (tester) async {

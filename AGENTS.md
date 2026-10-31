@@ -67,3 +67,9 @@ Codespaces Linux tidak menggantikan macOS/Xcode untuk signing/build iOS atau lin
 - `find.text(...)` di widget test rapuh jika teks muncul di >1 konteks (mis. AppBar + tombol, atau label NavigationBar + konten). Prefer `find.byKey`, `find.descendant(of: ..., matching: ...)`, atau `findsWidgets` sesuai konteks.
 - Breakpoint adaptif UI: **720 logical pixels** (di bawah: mobile, di atas/sama: wide).
 - Test viewport default Flutter adalah 800×600 (wide). Untuk menguji mobile, set `tester.view.physicalSize = Size(400, 800)` dan `devicePixelRatio = 1.0`, dengan `addTearDown` untuk reset.
+
+## Test conventions (pgTAP & Flutter)
+
+- Di pgTAP, semua query dalam satu file test berjalan dalam satu transaksi (satu `begin/rollback`). Artinya `now()`/`created_at` **identik** untuk semua baris yang di-insert. Jangan pakai `order by created_at` untuk tie-break. Pakai `id`, `order_number`, atau cek eksistensi via `array_agg` / `count(*)`.
+- Untuk multi-row assertions (mis. "dua order_number ada"), gunakan `array_agg(col order by col)` + `is(..., array[...], ...)` — deterministik dan mudah dibaca.
+- Jangan andalkan `unique` untuk membuktikan nilai — verifikasi nilai secara eksplisit.

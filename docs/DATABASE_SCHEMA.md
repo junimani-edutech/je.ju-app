@@ -193,6 +193,28 @@ Mengacu pada `DECISIONS.md`:
 - `actor_id uuid`, `action text not null`, `entity_type text not null`, `entity_id uuid`.
 - `payload jsonb`, `created_at timestamptz not null default now()`.
 
+## RPC (server-side, SECURITY DEFINER)
+
+### `create_order(p_business_id, p_customer_id, p_order_date, p_due_date, p_notes, p_discount_amount, p_additional_fee_amount, p_shipping_amount, p_items jsonb) returns uuid`
+
+- Validasi membership (role owner/admin/cashier/order_staff).
+- Generate `order_number` format **Q5-A** `YYYYMMDD-NNN` per bisnis per hari. Diserialkan via `pg_advisory_xact_lock(hashtext('order_seq:'||business_id), hashtext(YYYYMMDD))`, dilindungi unique `(business_id, order_number)`.
+- Insert order + order_items atomik. Subtotal = Σ(quantity × unit_price - discount). Total = subtotal - diskon + fee + ongkir.
+- `order_status_id` di-set ke `code='draft'` (fallback: status pertama by `sort_order`).
+- `created_by` diisi server-side via `auth.uid()`.
+
+### `change_order_status(p_order_id, p_to_status_id, p_notes) returns void`
+
+- Validasi membership (role owner/admin/cashier/order_staff).
+- **Menolak** status tujuan dengan `code='cancelled'` (raise `USE_CANCEL_ORDER`). Cancel wajib lewat `cancel_order`.
+- Update `orders.order_status_id` + insert `order_status_history` (from, to, changed_by, notes) atomik.
+
+### `cancel_order(p_order_id, p_reason) returns void`
+
+- Validasi membership.
+- Menolak order yang sudah `status='cancelled'` (raise `ALREADY_CANCELLED`).
+- Set `orders.status='cancelled'`, `cancelled_at`, `cancelled_by`, `cancel_reason`, `order_status_id=cancelled` (jika ada). Insert history dengan `notes = p_reason || 'Order cancelled'` atomik.
+
 ## RLS (Row Level Security)
 
 - Semua tabel tenant mengaktifkan RLS.

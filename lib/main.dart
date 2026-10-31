@@ -8,6 +8,8 @@ import 'core/auth/supabase_auth_service.dart';
 import 'core/business/supabase_business_service.dart';
 import 'core/providers.dart';
 import 'features/customers/customers_providers.dart';
+import 'features/orders/orders_providers.dart';
+import 'features/orders/supabase_orders_service.dart';
 import 'features/customers/supabase_customers_service.dart';
 
 Future<void> main() async {
@@ -42,6 +44,7 @@ Future<void> main() async {
         customersServiceProvider.overrideWithValue(
           SupabaseCustomersService(client),
         ),
+        ordersServiceProvider.overrideWithValue(SupabaseOrdersService(client)),
       ],
       child: const JeJuApp(),
     ),

@@ -4,6 +4,8 @@ import 'package:jeju_app/core/models/app_user.dart';
 import 'package:jeju_app/core/models/business.dart';
 import 'package:jeju_app/core/models/business_member.dart';
 import 'package:jeju_app/features/customers/customer.dart';
+import 'package:jeju_app/features/orders/order.dart';
+import 'package:jeju_app/features/orders/orders_service.dart';
 import 'package:jeju_app/features/customers/customers_service.dart';
 
 class FakeAuthService implements AuthService {
@@ -208,4 +210,125 @@ class FakeCustomersService implements CustomersService {
     address: c.address,
     notes: c.notes,
   );
+}
+
+class FakeOrdersService implements OrdersService {
+  FakeOrdersService({
+    List<Order> initialOrders = const [],
+    List<OrderStatus> initialStatuses = const [],
+  }) : _orders = List.of(initialOrders),
+       _statuses = List.of(initialStatuses);
+
+  final List<Order> _orders;
+  final List<OrderStatus> _statuses;
+
+  int createCallCount = 0;
+  int changeStatusCallCount = 0;
+  int cancelCallCount = 0;
+  String? lastCreatedNotes;
+  int lastCreatedItemCount = 0;
+
+  @override
+  Future<List<Order>> list({required String businessId}) async {
+    return _orders.where((o) => o.businessId == businessId).toList();
+  }
+
+  @override
+  Future<Order> get(String orderId) async {
+    return _orders.firstWhere((o) => o.id == orderId);
+  }
+
+  @override
+  Future<List<OrderItem>> listItems(String orderId) async => const [];
+
+  @override
+  Future<List<OrderStatus>> listStatuses(String businessId) async {
+    return _statuses.where((s) => s.businessId == businessId).toList();
+  }
+
+  @override
+  Future<String> create({
+    required String businessId,
+    required List<OrderItemInput> items,
+    String? customerId,
+    DateTime? orderDate,
+    DateTime? dueDate,
+    String? notes,
+    int discountAmount = 0,
+    int additionalFeeAmount = 0,
+    int shippingAmount = 0,
+  }) async {
+    createCallCount++;
+    lastCreatedNotes = notes;
+    lastCreatedItemCount = items.length;
+    final now = DateTime.now();
+    final id = 'fake-order-${_orders.length + 1}';
+    final subtotal = items.fold<int>(0, (acc, e) => acc + e.lineTotal);
+    final total =
+        subtotal - discountAmount + additionalFeeAmount + shippingAmount;
+    _orders.insert(
+      0,
+      Order(
+        id: id,
+        businessId: businessId,
+        orderNumber:
+            '20260101-${(_orders.length + 1).toString().padLeft(3, '0')}',
+        customerId: customerId,
+        orderDate: orderDate ?? now,
+        dueDate: dueDate,
+        subtotalAmount: subtotal,
+        discountAmount: discountAmount,
+        additionalFeeAmount: additionalFeeAmount,
+        shippingAmount: shippingAmount,
+        totalAmount: total,
+        paidAmount: 0,
+        currency: 'IDR',
+        notes: notes,
+        orderStatusId: _statuses.isEmpty ? null : _statuses.first.id,
+        paymentStatus: 'unpaid',
+        status: 'active',
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    return id;
+  }
+
+  @override
+  Future<void> changeStatus({
+    required String orderId,
+    required String orderStatusId,
+    String? notes,
+  }) async {
+    changeStatusCallCount++;
+  }
+
+  @override
+  Future<void> cancel(String orderId, {String? reason}) async {
+    cancelCallCount++;
+    final idx = _orders.indexWhere((o) => o.id == orderId);
+    if (idx < 0) return;
+    final old = _orders[idx];
+    _orders[idx] = Order(
+      id: old.id,
+      businessId: old.businessId,
+      orderNumber: old.orderNumber,
+      customerId: old.customerId,
+      orderDate: old.orderDate,
+      dueDate: old.dueDate,
+      subtotalAmount: old.subtotalAmount,
+      discountAmount: old.discountAmount,
+      additionalFeeAmount: old.additionalFeeAmount,
+      shippingAmount: old.shippingAmount,
+      totalAmount: old.totalAmount,
+      paidAmount: old.paidAmount,
+      currency: old.currency,
+      notes: old.notes,
+      orderStatusId: old.orderStatusId,
+      paymentStatus: old.paymentStatus,
+      status: 'cancelled',
+      createdAt: old.createdAt,
+      updatedAt: DateTime.now(),
+    );
+  }
 }
