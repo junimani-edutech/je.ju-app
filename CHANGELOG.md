@@ -40,3 +40,29 @@
 - `flutter analyze` — lihat log terminal.
 - `flutter test` — lihat log terminal.
 - Tidak ada klaim lulus tanpa log yang sesuai.
+
+## 2026-11-01 — Fase 1: Supabase lokal + verifikasi migration
+
+### Added
+- Supabase CLI 2.122.0 terpasang di Codespace.
+- `supabase/config.toml` dan `supabase/.gitignore` via `supabase init`.
+- `psql` (postgresql-client-16) terpasang.
+
+### Changed
+- `20261101000000_initial_schema.sql` diverifikasi dapat diapply via `supabase db reset`.
+- `CURRENT_STATE.md` diperbarui ke akhir Fase 1.
+
+### Verified (lokal)
+- `tables_total = 15`, `tables_rls_on = 15`
+- `policy_total = 34`
+- `is_business_member` = security definer (`prosecdef = true`)
+- `business_role` = owner/admin/cashier/order_staff/viewer
+- `member_status` = invited/active/suspended/removed
+- Semua tabel tenant memiliki minimal 1 policy
+
+### Tests
+- `supabase db reset` sukses (output disalin dari terminal pengguna).
+- Verifikasi via psql dijalankan oleh pengguna dan sesuai kriteria.
+
+### Notes
+- Warning `no files matched pattern: supabase/seed.sql` bukan error; seed.sql belum dibuat.
