@@ -1,5 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../models/business.dart';
+import '../models/business_member.dart';
 import 'business_service.dart';
 
 class SupabaseBusinessService implements BusinessService {
@@ -22,5 +24,30 @@ class SupabaseBusinessService implements BusinessService {
       params: {'p_name': name, 'p_timezone': timezone},
     );
     return result as String;
+  }
+
+  @override
+  Future<List<Business>> listMyBusinesses() async {
+    final rows = await _client
+        .from('businesses')
+        .select('id, name, timezone, currency')
+        .order('created_at');
+    return (rows as List)
+        .map((e) => Business.fromMap(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
+  Future<BusinessMember?> getMemberForCurrentUser(String businessId) async {
+    final uid = _client.auth.currentUser?.id;
+    if (uid == null) return null;
+    final row = await _client
+        .from('business_members')
+        .select('id, business_id, user_id, role, status')
+        .eq('business_id', businessId)
+        .eq('user_id', uid)
+        .maybeSingle();
+    if (row == null) return null;
+    return BusinessMember.fromMap(row);
   }
 }

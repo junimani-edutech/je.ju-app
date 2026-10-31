@@ -7,6 +7,8 @@ import 'app.dart';
 import 'core/auth/supabase_auth_service.dart';
 import 'core/business/supabase_business_service.dart';
 import 'core/providers.dart';
+import 'features/customers/customers_providers.dart';
+import 'features/customers/supabase_customers_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +38,9 @@ Future<void> main() async {
         authServiceProvider.overrideWithValue(SupabaseAuthService(client)),
         businessServiceProvider.overrideWithValue(
           SupabaseBusinessService(client),
+        ),
+        customersServiceProvider.overrideWithValue(
+          SupabaseCustomersService(client),
         ),
       ],
       child: const JeJuApp(),

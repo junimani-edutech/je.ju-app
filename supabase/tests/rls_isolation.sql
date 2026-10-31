@@ -4,7 +4,7 @@
 
 begin;
 
-select plan(10);
+select plan(13);
 
 -- ============================================================
 -- FIXTURES (rolled back di akhir)
@@ -122,6 +122,54 @@ select throws_ok(
   '42501',
   null,
   'User A cannot insert customer into biz_b (RLS violation)'
+);
+
+
+-- ============================================================
+-- TES UPDATE / DELETE ISOLATION — user_a mencoba menyentuh biz_b
+-- ============================================================
+set local role authenticated;
+set local request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+set local request.jwt.claims    = '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}';
+
+-- Percobaan update customer biz_b (bukan milik user_a). RLS menolak → 0 rows.
+update public.customers
+   set name = 'Hacked A'
+ where id = 'c0000002-0000-0000-0000-000000000002';
+
+-- Percobaan delete customer biz_b. RLS menolak → 0 rows.
+delete from public.customers
+ where id = 'c0000002-0000-0000-0000-000000000002';
+
+-- Update customer milik user_a sendiri (harus berhasil).
+update public.customers
+   set name = 'Customer A Updated'
+ where id = 'c0000001-0000-0000-0000-000000000001';
+
+-- Verifikasi sebagai postgres (bypass RLS) agar bisa membaca kedua baris.
+reset role;
+set local request.jwt.claim.sub = '';
+set local request.jwt.claims    = '{}';
+
+select is(
+  (select name from public.customers
+   where id = 'c0000002-0000-0000-0000-000000000002'),
+  'Customer B',
+  'User A update on biz_b customer has no effect (RLS blocked)'
+);
+
+select is(
+  (select count(*)::int from public.customers
+   where id = 'c0000002-0000-0000-0000-000000000002'),
+  1,
+  'User A delete on biz_b customer has no effect (row still exists)'
+);
+
+select is(
+  (select name from public.customers
+   where id = 'c0000001-0000-0000-0000-000000000001'),
+  'Customer A Updated',
+  'User A can update own customer'
 );
 
 select * from finish();

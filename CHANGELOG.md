@@ -159,3 +159,30 @@
 - `flutter analyze` — No issues found.
 - `flutter test` — 13 tests passed (1 smoke + 4 auth + 3 onboarding + 5 navigasi).
 - `supabase test db` (Langkah 7A) tetap 27 tests PASS; tidak ada perubahan backend.
+
+## 2026-11-01 — Fase 4: Pelanggan + Q1 default order statuses (Langkah 9)
+
+### Added
+- Migration `20261101020000_created_by_triggers.sql`.
+- Migration `20261101020100_seed_order_statuses_on_business_create.sql` (Q1 APPROVED) + backfill.
+- Test `supabase/tests/order_statuses_seed.sql` (6 tests).
+- `lib/core/models/business.dart`, `lib/core/models/business_member.dart`.
+- `BusinessService.listMyBusinesses()`, `getMemberForCurrentUser(businessId)`.
+- `currentBusinessProvider` dan `currentMemberProvider`.
+- Fitur Customers lengkap (model, service, notifier, form sheet, list tile, screen).
+- Widget test `test/features/customers/customers_screen_test.dart` (6 tests).
+
+### Changed
+- `test/widget_test.dart` pakai `FakeAuthService`/`FakeBusinessService` dari `test/fake/`.
+- `test/fake/fake_services.dart`: `FakeBusinessService` implement 2 method baru; tambah `FakeCustomersService`.
+- `main.dart`: override `customersServiceProvider`.
+- `supabase/tests/rls_isolation.sql`: plan 10 → 13, tambah update/delete isolation.
+- `docs/DATABASE_SCHEMA.md`: Q1 ditandai **APPROVED**.
+
+### Removed
+- Placeholder `CustomersScreen` lama.
+
+### Tests
+- `flutter analyze` — No issues found.
+- `flutter test` — 19 tests passed.
+- `supabase test db` — Files=3, Tests=36, Result: PASS.

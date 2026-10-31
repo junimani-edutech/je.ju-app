@@ -243,7 +243,7 @@ Dihitung di server/SQL, bukan di klien.
 
 Tidak memblokir draft skema, tetapi harus diputuskan sebelum modul terkait:
 
-- **Q1** — Apakah `order_statuses` di-seed otomatis saat business dibuat? Default draft: ya, minimal `draft`, `process`, `done`, `cancelled`.
+- **Q1** — **APPROVED (2026-11-01).** `order_statuses` di-seed otomatis saat bisnis dibuat: `draft`, `process`, `done` (final), `cancelled` (final). Diimplementasikan di migration `20261101020100_seed_order_statuses_on_business_create.sql` via trigger `after insert on businesses`.
 - **Q2** — Apakah `profiles` bisa dibaca oleh sesama member business? Default draft: ya, hanya `full_name` dan `avatar_url`.
 - **Q3** — Apakah satu `payments` boleh melunasi beberapa order sekaligus? Default draft: tidak; satu payment untuk satu order. Perlu keputusan sebelum modul pembayaran.
 - **Q4** — Refund dicatat sebagai payment baru dengan `reversal_of_payment_id` dan `amount` positif, atau payment negatif? Default draft: payment baru, `amount` positif, dikurangkan saat agregasi.

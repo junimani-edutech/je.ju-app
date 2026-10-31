@@ -4,58 +4,62 @@ Terakhir diperbarui: 2026-11-01
 
 ## Fase saat ini
 
-Fase 3 — Kerangka UI (selesai). App shell adaptif + placeholder per modul terpasang dan teruji.
+Fase 4 — Pelanggan (selesai). Pesanan siap dimulai.
 
 ## Sudah selesai
 
-- Docs: `docs/REQUIREMENTS.md`, `docs/DATABASE_SCHEMA.md` (DRAFT v0.1).
-- Tata kelola: `AGENTS.md`, `DECISIONS.md`, `CURRENT_STATE.md`, `CHANGELOG.md`, `MASTER_BLUEPRINT.md`.
-- Migration 0000: skema 15 tabel, 34 policy, helper `is_business_member`.
-- Migration 0100: trigger `on_auth_user_created`, `set_updated_at`, RPC `create_business_with_owner`.
-- pgTAP: 27 tests PASS (rls_isolation + auth_onboarding).
-- Flutter auth UI + onboarding (Langkah 7B): 8 widget tests PASS.
-- **Fase 3 — Kerangka UI (Langkah 8):**
-  - `AppTheme` (light + dark, seed `#2E7D32`), `themeModeProvider` (NotifierProvider).
-  - `ComingSoonScreen` reusable.
-  - `AppShell` adaptif: `NavigationBar` 4 tab (mobile) / `NavigationRail` 6 entri (wide ≥ 720px).
-  - 7 layar: Dashboard, Customers, Orders, Payments, Reports, Settings, More (placeholder).
-  - Router `StatefulShellRoute.indexedStack` dengan 4 branch.
-  - Widget test navigasi: mobile + wide.
-  - `HomeScreen` lama dihapus (digantikan `DashboardScreen`).
+- Fase 1: skema, auth backend, auth UI, onboarding.
+- Fase 2: RLS + pgTAP isolasi.
+- Fase 3: app shell adaptif + theme light/dark + placeholder 6 modul.
+- **Fase 4 — Pelanggan:**
+  - Migration 0200: trigger `set_created_by` untuk customers/orders/payments/transactions/transfers.
+  - Migration 0201: seed default `order_statuses` saat bisnis dibuat (Q1 APPROVED).
+  - Model: `Business`, `BusinessMember`.
+  - `BusinessService`: `listMyBusinesses` + `getMemberForCurrentUser`.
+  - `currentBusinessProvider` (bisnis pertama; multi-business UI = Fase 7).
+  - `currentMemberProvider` (role user aktif).
+  - Fitur Customers: model, service (abstract + Supabase), `CustomersNotifier`, form sheet, list tile, `CustomersScreen` dengan search + tab Aktif/Arsip + role-based aksi.
+  - Widget test: 6 tests.
+  - pgTAP: diperluas dengan update/delete isolation.
+  - Total: 19 Flutter test + 36 pgTAP test.
 
 ## Keputusan
 
 - D-01, D-02, D-03, D-04, D-07: APPROVED.
 - D-05, D-06, D-08: PROPOSED.
 - A-01..A-08: APPROVED.
-- U-01..U-07: APPROVED (nav adaptif, 4 tab mobile, rename home→dashboard, light+dark, ComingSoon, Lainnya sebagai halaman, Material icons).
+- U-01..U-07: APPROVED.
+- **C-01..C-08: APPROVED.**
+- **Q1: APPROVED.**
 
-## Pertanyaan terbuka (dari DATABASE_SCHEMA.md)
+## Pertanyaan terbuka (sisa)
 
-Q1 s.d. Q7 belum diputuskan. **Q1 adalah blocker** saat masuk Fase 4 (pesanan).
+Q2–Q7 di `docs/DATABASE_SCHEMA.md` **belum diputuskan**:
+- Q2 (profiles readable by members) → Fase 7.
+- Q3 (satu payment multi-order?) → **sebelum Fase 5**.
+- Q4 (refund representation) → **sebelum Fase 5**.
+- Q5 (format order_number) → **sebelum Fase 4-Pesanan**.
+- Q6 (ongkir dibebankan vs biaya aktual) → Fase 4-Pesanan.
+- Q7 (retensi audit_logs) → Fase 7.
 
 ## Belum dimulai
 
-- Fase 4: Pelanggan, Pesanan, Item, Status, Pembayaran, Riwayat.
-- Fase 5: Keuangan (pemasukan/pengeluaran, akun, transfer).
+- Fase 4 — **Pesanan** (Customers done → Orders → Order Items → Payments → History). **Blocker: Q5** harus diputuskan dulu.
+- Fase 5: Keuangan. **Blocker: Q3 & Q4**.
 - Fase 6: Pengaturan/laporan/ekspor.
-- Fase 7: Tim/audit.
+- Fase 7: Tim/audit (multi-business UI).
 - Fase 8: Offline/sync.
 - Fase 9: Validasi/rilis.
-- Seed default (order_statuses, dll) saat bisnis baru — menunggu Q1.
-- Nama bisnis aktif di AppBar — butuh `currentBusinessProvider` (Fase 4).
-- Toggle tema manual + persistensi (Fase 6).
 
 ## Batas yang diakui
 
-- Verifikasi memakai Supabase lokal (Docker), belum remote.
-- Build iOS dan native Windows belum diverifikasi di Codespaces Linux.
+- Supabase lokal (Docker), belum remote.
+- Build iOS & native Windows belum diverifikasi di Codespaces Linux.
 - Rumus laba operasional belum final.
-- Test navigasi memakai fake service (tidak menyentuh Supabase).
+- Pagination/server-side search Pelanggan ditunda ke Fase 6.
+- Multi-business UI ditunda ke Fase 7 (saat ini hanya bisnis pertama).
 
 ## Langkah berikutnya
 
-1. **Langkah 9: Fase 4 — Pelanggan dulu (Customer CRUD)**, sebelum Pesanan.
-   - Q1 perlu diputuskan sebelum modul Pesanan.
-   - Modul Pelanggan bisa jalan tanpa Q1.
-2. Setelah Pelanggan: Pesanan → Pembayaran.
+1. Putuskan **Q5** (format `order_number`) sebelum modul Pesanan.
+2. Langkah 10: Fase 4 — Pesanan.
