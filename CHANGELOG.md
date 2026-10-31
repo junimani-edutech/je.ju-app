@@ -99,3 +99,33 @@
 ### Notes
 - RPC idempotency belum ada; UI Langkah 7B wajib disable submit selama request.
 - Seed `order_statuses`/`payment_methods`/`categories`/`accounts` default belum.
+
+## 2026-11-01 — Fase 1: Flutter auth UI + onboarding (Langkah 7B)
+
+### Added
+- `lib/core/models/app_user.dart`.
+- `lib/core/auth/{auth_service,supabase_auth_service}.dart`.
+- `lib/core/business/{business_service,supabase_business_service}.dart`.
+- `lib/core/providers.dart` (authService, businessService, authState, hasBusiness).
+- `lib/router/app_router.dart` (go_router + redirect auth & onboarding).
+- `lib/app.dart` (JeJuApp ConsumerWidget).
+- `lib/features/auth/{sign_in_screen,sign_up_screen}.dart`.
+- `lib/features/onboarding/onboarding_screen.dart`.
+- `lib/features/home/home_screen.dart`.
+- Dependensi: `flutter_riverpod`, `go_router`.
+- `test/fake/fake_services.dart` (reusable fakes).
+- `test/features/auth/auth_flow_test.dart` (4 tests).
+- `test/features/onboarding/onboarding_test.dart` (3 tests).
+
+### Changed
+- `lib/main.dart` di-rewrite: load `.env`, init Supabase, override providers.
+- `test/widget_test.dart` diganti smoke test (unauthenticated → sign-in).
+- Riverpod 3.x: `AsyncValue.valueOrNull` → `.value`.
+- `Supabase.initialize(anonKey:...)` di-suppress deprecation sampai kita bump SDK.
+- Asersi onboarding_test: `find.text('Buat Usaha')` dari `findsOneWidget` → `findsWidgets`
+  karena AppBar dan tombol berbagi teks yang sama.
+
+### Tests
+- `flutter analyze` — No issues found.
+- `flutter test` — 8 tests passed (1 smoke + 4 auth + 3 onboarding).
+- `supabase test db` (Langkah 7A) tetap 27 tests PASS; migration baru tidak berubah.

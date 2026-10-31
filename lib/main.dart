@@ -1,29 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'app.dart';
+import 'core/auth/supabase_auth_service.dart';
+import 'core/business/supabase_business_service.dart';
+import 'core/providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // .env opsional pada Fase 1. Jika belum ada, aplikasi tetap jalan.
+
+  String? url;
+  String? anon;
   try {
     await dotenv.load(fileName: '.env');
+    url = dotenv.env['SUPABASE_URL'];
+    anon = dotenv.env['SUPABASE_ANON_KEY'];
   } catch (_) {
-    // Diabaikan: .env belum wajib sampai Fase 2.
+    // .env tidak wajib untuk build; UI akan menampilkan pesan.
   }
-  runApp(const JeJuApp());
+
+  if (url == null || url.isEmpty || anon == null || anon.isEmpty) {
+    runApp(const _MissingEnvApp());
+    return;
+  }
+
+  // ignore: deprecated_member_use
+  await Supabase.initialize(url: url, anonKey: anon);
+  final client = Supabase.instance.client;
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        authServiceProvider.overrideWithValue(SupabaseAuthService(client)),
+        businessServiceProvider.overrideWithValue(
+          SupabaseBusinessService(client),
+        ),
+      ],
+      child: const JeJuApp(),
+    ),
+  );
 }
 
-class JeJuApp extends StatelessWidget {
-  const JeJuApp({super.key});
+class _MissingEnvApp extends StatelessWidget {
+  const _MissingEnvApp();
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'JeJu',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D32)),
-        useMaterial3: true,
+    return const MaterialApp(
+      home: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Konfigurasi belum lengkap.\n\n'
+              'Buat file .env di root proyek dengan:\n'
+              'SUPABASE_URL=...\n'
+              'SUPABASE_ANON_KEY=...\n\n'
+              'Lihat .env.example untuk petunjuk.',
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
       ),
-      home: const Scaffold(body: Center(child: Text('JeJu — Fondasi siap'))),
     );
   }
 }
