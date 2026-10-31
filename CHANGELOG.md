@@ -77,3 +77,25 @@
 ### Tests
 - `supabase test db` — All tests successful (10 tests), sesuai output terminal pengguna.
 - Tidak ada klaim lulus tanpa log yang sesuai.
+
+## 2026-11-01 — Fase 1: auth backend & onboarding (Langkah 7A)
+
+### Added
+- Migration `20261101010000_auth_profile_and_business_onboarding.sql`:
+  - Trigger `on_auth_user_created` → auto-create `public.profiles` (SECURITY DEFINER).
+  - `public.set_updated_at()` trigger untuk `profiles`, `businesses`, `business_members`.
+  - RPC `public.create_business_with_owner(p_name, p_timezone)` SECURITY DEFINER, atomik.
+  - Grant EXECUTE hanya ke `authenticated`.
+- Tes `supabase/tests/auth_onboarding.sql` (17 pgTAP assertions).
+
+### Changed
+- Tidak mengubah migration 0000.
+- Tidak menambah seed default saat bisnis baru (menunggu Q1).
+
+### Tests
+- `supabase db reset` — apply 2 migration, sukses (log terminal pengguna).
+- `supabase test db` — 2 file tes, 27 tests, `All tests successful`.
+
+### Notes
+- RPC idempotency belum ada; UI Langkah 7B wajib disable submit selama request.
+- Seed `order_statuses`/`payment_methods`/`categories`/`accounts` default belum.

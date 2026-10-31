@@ -4,48 +4,51 @@ Terakhir diperbarui: 2026-11-01
 
 ## Fase saat ini
 
-Fase 1 — Fondasi selesai. Flutter OK, Supabase lokal OK, migration terverifikasi, RLS behavior teruji.
+Fase 1/2 transisi. Flutter OK, Supabase lokal OK, migration (2 file) OK, RLS behavior teruji,
+auth backend (trigger profil + RPC create business) terpasang dan teruji.
 
 ## Sudah selesai
 
-- `docs/REQUIREMENTS.md`, `AGENTS.md`, `DECISIONS.md`, `CHANGELOG.md`, `MASTER_BLUEPRINT.md`.
-- `docs/DATABASE_SCHEMA.md` (DRAFT v0.1).
-- `supabase/migrations/20261101000000_initial_schema.sql` — terverifikasi via `supabase db reset`.
-- D-01, D-02, D-03, D-04, D-07 APPROVED (2026-11-01).
-- Flutter `jeju_app` (android/ios/web/linux/macos/windows). `flutter analyze` no issues; `flutter test` all passed.
-- Supabase CLI 2.122.0 + `psql` 16.15 terpasang. `supabase start`/`db reset` sukses.
-- Verifikasi schema: 15 tabel, 15 RLS aktif, 34 policy, helper `is_business_member` security definer, enum benar.
-- **Langkah 6: pgTAP RLS isolation test.** `supabase test db` — 10 tests passed (lihat CHANGELOG).
+- Docs: `docs/REQUIREMENTS.md`, `docs/DATABASE_SCHEMA.md` (DRAFT v0.1).
+- Tata kelola: `AGENTS.md`, `DECISIONS.md`, `CURRENT_STATE.md`, `CHANGELOG.md`, `MASTER_BLUEPRINT.md`.
+- Migration 0000: skema awal 15 tabel, RLS 34 policy, helper `is_business_member`.
+- Migration 0100: trigger `on_auth_user_created`, `set_updated_at`, RPC `create_business_with_owner`.
+- Tes pgTAP:
+  - `rls_isolation.sql` (10 tests) — isolasi per business.
+  - `auth_onboarding.sql` (17 tests) — trigger profil, RPC, validasi, multi-business, not-authenticated.
+- D-01, D-02, D-03, D-04, D-07 APPROVED.
+- A-01..A-08 APPROVED (auth method, email-only, onboarding, dll).
+- Flutter `jeju_app`, `flutter analyze`/`test` lulus.
 
 ## Sedang dikerjakan
 
-- Belum. Siap Langkah 7: auth dasar + onboarding business.
+- Siap masuk Langkah 7B: Flutter auth UI + onboarding screen.
 
 ## Belum dimulai
 
-- Auth UI dan alur join business.
-- Kerangka UI (Fase 3).
-- Modul pesanan, pembayaran, keuangan, laporan.
-- Offline/sync.
-- Build & test per platform (iOS/Windows belum diverifikasi di Codespaces Linux).
+- Langkah 7B: UI auth + onboarding, Riverpod, go_router.
+- Fase 3: kerangka UI dashboard.
+- Fase 4–5: pesanan, keuangan.
+- Fase 6–9: laporan, tim, offline, rilis.
+- Q1–Q7 di DATABASE_SCHEMA.md belum diputuskan.
+- Seed default (order_statuses, payment_methods, categories, accounts) saat bisnis baru — menunggu Q1.
+- Idempotency RPC create_business — belum.
 
 ## Keputusan
 
 - D-01, D-02, D-03, D-04, D-07: APPROVED.
 - D-05, D-06, D-08: PROPOSED.
-
-## Pertanyaan terbuka (dari DATABASE_SCHEMA.md)
-
-Q1 s.d. Q7 belum diputuskan. Lihat `docs/DATABASE_SCHEMA.md` bagian "Pertanyaan terbuka".
+- A-01..A-08: APPROVED (email-only, no OAuth, no email confirm di lokal, onboarding wajib, timezone default Asia/Jakarta, currency IDR, no invite, RPC-based create, Riverpod, go_router).
 
 ## Batas yang diakui
 
-- Semua verifikasi memakai Supabase lokal (Docker), belum remote.
-- pgTAP hanya menguji `select`/`insert` RLS. Skenario `update`/`delete` menyusul.
+- Verifikasi memakai Supabase lokal (Docker), belum remote.
+- pgTAP hanya menguji `select`/`insert` di RLS, plus trigger & RPC. Skenario `update`/`delete` menyusul.
+- Seed default saat bisnis baru belum ada (menunggu Q1).
 - Rumus laba operasional belum final.
 - Build iOS dan native Windows belum diverifikasi.
 
 ## Langkah berikutnya
 
-1. Langkah 7: auth dasar (sign up / sign in / join business) + onboarding business pertama.
-2. Setup trigger `on_auth_user_created` untuk auto-create profile.
+1. Langkah 7B: Flutter — init Supabase, Riverpod, go_router, AuthGate, SignIn/SignUp, Onboarding.
+2. Setelah itu: Fase 3 kerangka UI.
