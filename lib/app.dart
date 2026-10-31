@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/theme/app_theme.dart';
+import 'core/theme/theme_mode_provider.dart';
 import 'router/app_router.dart';
 
 class JeJuApp extends ConsumerWidget {
@@ -9,12 +11,12 @@ class JeJuApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final mode = ref.watch(themeModeProvider);
     return MaterialApp.router(
       title: 'JeJu',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF2E7D32)),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: mode,
       routerConfig: router,
     );
   }

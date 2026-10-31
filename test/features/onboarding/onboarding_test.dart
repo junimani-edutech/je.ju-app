@@ -31,7 +31,6 @@ void main() {
 
     // Dua widget bertext 'Buat Usaha' (AppBar + tombol) memang diharapkan.
     expect(find.text('Buat Usaha'), findsWidgets);
-    // Bukti utama layar onboarding via key.
     expect(find.byKey(const Key('onboarding_name')), findsOneWidget);
     expect(find.byKey(const Key('onboarding_submit')), findsOneWidget);
   });
@@ -59,7 +58,7 @@ void main() {
     expect(biz.lastCreatedTimezone, 'Asia/Jakarta');
   });
 
-  testWidgets('user login yang sudah punya bisnis diarahkan ke home', (
+  testWidgets('user login yang sudah punya bisnis diarahkan ke dashboard', (
     tester,
   ) async {
     final auth = FakeAuthService(
@@ -70,8 +69,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    // HomeScreen menampilkan email pengguna
-    expect(find.text('Selamat datang, u@example.com'), findsOneWidget);
-    expect(find.byKey(const Key('home_sign_out')), findsOneWidget);
+    // DashboardScreen: section 'Ringkasan' unik, kartu pengguna menampilkan email.
+    expect(find.text('Ringkasan'), findsOneWidget);
+    expect(find.text('u@example.com'), findsOneWidget);
   });
 }

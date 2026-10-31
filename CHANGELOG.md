@@ -129,3 +129,33 @@
 - `flutter analyze` — No issues found.
 - `flutter test` — 8 tests passed (1 smoke + 4 auth + 3 onboarding).
 - `supabase test db` (Langkah 7A) tetap 27 tests PASS; migration baru tidak berubah.
+
+## 2026-11-01 — Fase 3: kerangka UI + adaptive app shell (Langkah 8)
+
+### Added
+- `lib/core/theme/app_theme.dart` (light + dark, seed `#2E7D32`).
+- `lib/core/theme/theme_mode_provider.dart` (Riverpod 3.x `NotifierProvider`).
+- `lib/shared/widgets/coming_soon_screen.dart` (placeholder reusable).
+- `lib/shared/widgets/app_shell.dart` (adaptive NavigationBar / NavigationRail).
+- `lib/features/dashboard/dashboard_screen.dart` (ringkasan placeholder).
+- `lib/features/customers/customers_screen.dart`.
+- `lib/features/orders/orders_screen.dart`.
+- `lib/features/payments/payments_screen.dart`.
+- `lib/features/reports/reports_screen.dart`.
+- `lib/features/settings/settings_screen.dart` (sign out di sini).
+- `lib/features/more/more_screen.dart` (menu ke Pembayaran/Laporan/Pengaturan/SignOut).
+- `test/features/shell/navigation_test.dart` (5 tests: 3 mobile, 2 wide).
+
+### Changed
+- `lib/router/app_router.dart` di-rewrite: `StatefulShellRoute.indexedStack` dengan 4 branch, redirect diperluas.
+- `lib/app.dart` pakai `AppTheme` + `themeModeProvider`.
+- `test/features/onboarding/onboarding_test.dart` test #3: assertion pindah dari `HomeScreen` (`Selamat datang, <email>`) ke `DashboardScreen` (`Ringkasan` + email).
+- `AGENTS.md` ditambah bagian "Frontend conventions (Flutter / Riverpod)".
+
+### Removed
+- `lib/features/home/home_screen.dart` (placeholder yang digantikan `DashboardScreen`).
+
+### Tests
+- `flutter analyze` — No issues found.
+- `flutter test` — 13 tests passed (1 smoke + 4 auth + 3 onboarding + 5 navigasi).
+- `supabase test db` (Langkah 7A) tetap 27 tests PASS; tidak ada perubahan backend.

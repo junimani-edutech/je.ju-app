@@ -53,3 +53,17 @@ Jika menyentuh arsitektur, keamanan, atau rumus uang, AI harus berhenti dan memi
 ## Batas platform
 
 Codespaces Linux tidak menggantikan macOS/Xcode untuk signing/build iOS atau lingkungan Windows untuk menguji build native Windows. Klaim dukungan platform hanya setelah build/test terbukti.
+
+## Frontend conventions (Flutter / Riverpod)
+
+- Gunakan **Riverpod 3.x**. `StateProvider` dan `StateNotifierProvider` sudah dihapus/di-deprecate; jangan dipakai untuk kode baru.
+- State mutable sederhana: `NotifierProvider<XNotifier, T>(XNotifier.new)`.
+- Stream dari service: `StreamProvider<T>`.
+- Future sekali ambil: `FutureProvider<T>`.
+- State async yang bisa dimutasi: `AsyncNotifierProvider`.
+- Semua provider di `lib/core/providers.dart` atau file provider per fitur.
+- Widget yang memakai `ref.watch`/`ref.read` adalah `ConsumerWidget` / `ConsumerStatefulWidget`.
+- Untuk widget test, override `authServiceProvider`/`businessServiceProvider` dengan fake di `test/fake/`.
+- `find.text(...)` di widget test rapuh jika teks muncul di >1 konteks (mis. AppBar + tombol, atau label NavigationBar + konten). Prefer `find.byKey`, `find.descendant(of: ..., matching: ...)`, atau `findsWidgets` sesuai konteks.
+- Breakpoint adaptif UI: **720 logical pixels** (di bawah: mobile, di atas/sama: wide).
+- Test viewport default Flutter adalah 800×600 (wide). Untuk menguji mobile, set `tester.view.physicalSize = Size(400, 800)` dan `devicePixelRatio = 1.0`, dengan `addTearDown` untuk reset.
