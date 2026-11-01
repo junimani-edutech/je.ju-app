@@ -21,6 +21,20 @@ class MoreScreen extends ConsumerWidget {
             onTap: () => context.go('/app/more/payments'),
           ),
           ListTile(
+            key: const Key('more_transactions'),
+            leading: const Icon(Icons.receipt_long_outlined),
+            title: const Text('Transaksi'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.go('/app/more/transactions'),
+          ),
+          ListTile(
+            key: const Key('more_transfers'),
+            leading: const Icon(Icons.swap_horiz),
+            title: const Text('Transfer'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.go('/app/more/transfers'),
+          ),
+          ListTile(
             key: const Key('more_reports'),
             leading: const Icon(Icons.bar_chart_outlined),
             title: const Text('Laporan'),

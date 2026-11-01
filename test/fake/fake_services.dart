@@ -8,6 +8,11 @@ import 'package:jeju_app/features/orders/order.dart';
 import 'package:jeju_app/features/orders/orders_service.dart';
 import 'package:jeju_app/features/payments/payment.dart';
 import 'package:jeju_app/features/payments/payments_service.dart';
+import 'package:jeju_app/features/finance/category.dart';
+import 'package:jeju_app/features/finance/finance_models.dart';
+import 'package:jeju_app/features/finance/finance_services.dart';
+import 'package:jeju_app/features/finance/transaction.dart';
+import 'package:jeju_app/features/finance/transfer.dart';
 import 'package:jeju_app/features/customers/customers_service.dart';
 
 class FakeAuthService implements AuthService {
@@ -443,5 +448,205 @@ class FakePaymentsService implements PaymentsService {
       ),
     );
     return reversalId;
+  }
+}
+
+class FakeTransactionsService implements TransactionsService {
+  FakeTransactionsService({
+    List<Transaction> initial = const [],
+    List<Category> initialCategories = const [],
+    List<Account> initialAccounts = const [],
+    List<AccountBalance> initialBalances = const [],
+    CashFlowSummary? initialSummary,
+  }) : _txs = List.of(initial),
+       _cats = List.of(initialCategories),
+       _accs = List.of(initialAccounts),
+       _balances = List.of(initialBalances),
+       _summary =
+           initialSummary ??
+           const CashFlowSummary(income: 0, expense: 0, paymentsNet: 0, net: 0);
+
+  final List<Transaction> _txs;
+  final List<Category> _cats;
+  final List<Account> _accs;
+  final List<AccountBalance> _balances;
+  final CashFlowSummary _summary;
+
+  int recordCallCount = 0;
+  int voidCallCount = 0;
+  String? lastRecordedType;
+  int? lastRecordedAmount;
+  String? lastRecordedDescription;
+  String? lastVoidReason;
+
+  @override
+  Future<List<Transaction>> list({required String businessId}) async {
+    return _txs.where((t) => t.businessId == businessId).toList();
+  }
+
+  @override
+  Future<List<Category>> listCategories(String businessId) async {
+    return _cats.where((c) => c.businessId == businessId).toList();
+  }
+
+  @override
+  Future<List<Account>> listAccounts(String businessId) async {
+    return _accs.where((a) => a.businessId == businessId).toList();
+  }
+
+  @override
+  Future<List<AccountBalance>> accountBalances(String businessId) async {
+    return List.of(_balances);
+  }
+
+  @override
+  Future<CashFlowSummary> cashFlowSummary({
+    required String businessId,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    return _summary;
+  }
+
+  @override
+  Future<String> record({
+    required String businessId,
+    required String type,
+    required int amount,
+    required String description,
+    String? categoryId,
+    String? accountId,
+    DateTime? transactionDate,
+    String? reference,
+    String? attachmentUrl,
+    String? idempotencyKey,
+  }) async {
+    recordCallCount++;
+    lastRecordedType = type;
+    lastRecordedAmount = amount;
+    lastRecordedDescription = description;
+    final id = 'fake-tx-${_txs.length + 1}';
+    final now = DateTime.now();
+    _txs.insert(
+      0,
+      Transaction(
+        id: id,
+        businessId: businessId,
+        type: type,
+        amount: amount,
+        currency: 'IDR',
+        transactionDate: transactionDate ?? now,
+        description: description,
+        status: 'confirmed',
+        createdAt: now,
+        categoryId: categoryId,
+        accountId: accountId,
+        reference: reference,
+      ),
+    );
+    return id;
+  }
+
+  @override
+  Future<String> voidTransaction({
+    required String transactionId,
+    required String reason,
+  }) async {
+    voidCallCount++;
+    lastVoidReason = reason;
+    final orig = _txs.firstWhere((t) => t.id == transactionId);
+    final id = 'fake-tx-${_txs.length + 1}';
+    final now = DateTime.now();
+    _txs.insert(
+      0,
+      Transaction(
+        id: id,
+        businessId: orig.businessId,
+        type: orig.type,
+        amount: orig.amount,
+        currency: orig.currency,
+        transactionDate: now,
+        description: 'Reversal: $reason',
+        status: 'confirmed',
+        createdAt: now,
+        categoryId: orig.categoryId,
+        accountId: orig.accountId,
+        reversalOfTransactionId: transactionId,
+      ),
+    );
+    return id;
+  }
+}
+
+class FakeTransfersService implements TransfersService {
+  FakeTransfersService({List<Transfer> initial = const []})
+    : _trs = List.of(initial);
+
+  final List<Transfer> _trs;
+
+  int recordCallCount = 0;
+  int voidCallCount = 0;
+  String? lastVoidReason;
+
+  @override
+  Future<List<Transfer>> list({required String businessId}) async {
+    return _trs.where((t) => t.businessId == businessId).toList();
+  }
+
+  @override
+  Future<String> record({
+    required String businessId,
+    required String fromAccountId,
+    required String toAccountId,
+    required int amount,
+    DateTime? transferDate,
+    String? description,
+    String? idempotencyKey,
+  }) async {
+    recordCallCount++;
+    final id = 'fake-tr-${_trs.length + 1}';
+    final now = DateTime.now();
+    _trs.insert(
+      0,
+      Transfer(
+        id: id,
+        businessId: businessId,
+        fromAccountId: fromAccountId,
+        toAccountId: toAccountId,
+        amount: amount,
+        currency: 'IDR',
+        transferDate: transferDate ?? now,
+        status: 'confirmed',
+        createdAt: now,
+        description: description,
+      ),
+    );
+    return id;
+  }
+
+  @override
+  Future<void> voidTransfer({
+    required String transferId,
+    required String reason,
+  }) async {
+    voidCallCount++;
+    lastVoidReason = reason;
+    final idx = _trs.indexWhere((t) => t.id == transferId);
+    if (idx < 0) return;
+    final old = _trs[idx];
+    _trs[idx] = Transfer(
+      id: old.id,
+      businessId: old.businessId,
+      fromAccountId: old.fromAccountId,
+      toAccountId: old.toAccountId,
+      amount: old.amount,
+      currency: old.currency,
+      transferDate: old.transferDate,
+      status: 'cancelled',
+      createdAt: old.createdAt,
+      description: old.description,
+      cancelledAt: DateTime.now(),
+      cancelReason: reason,
+    );
   }
 }

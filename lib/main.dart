@@ -9,6 +9,8 @@ import 'core/business/supabase_business_service.dart';
 import 'core/providers.dart';
 import 'features/customers/customers_providers.dart';
 import 'features/orders/orders_providers.dart';
+import 'features/finance/finance_providers.dart';
+import 'features/finance/supabase_finance_services.dart';
 import 'features/payments/payments_providers.dart';
 import 'features/payments/supabase_payments_service.dart';
 import 'features/orders/supabase_orders_service.dart';
@@ -49,6 +51,12 @@ Future<void> main() async {
         ordersServiceProvider.overrideWithValue(SupabaseOrdersService(client)),
         paymentsServiceProvider.overrideWithValue(
           SupabasePaymentsService(client),
+        ),
+        transactionsServiceProvider.overrideWithValue(
+          SupabaseTransactionsService(client),
+        ),
+        transfersServiceProvider.overrideWithValue(
+          SupabaseTransfersService(client),
         ),
       ],
       child: const JeJuApp(),

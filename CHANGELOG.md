@@ -269,3 +269,45 @@
 - `FakeOrdersService` tidak merecompute `paid_amount` (Supabase asli RPC melakukannya).
 - Controller di dialog one-shot tidak di-dispose.
 - Dialog change status / cancel order belum punya widget test.
+
+## 2026-11-01 — Fase 5: Keuangan (Langkah 12)
+
+### Added
+- Migration `20261101050000_fix_void_payment_copy_accounts.sql`: fix `void_payment` menyalin `payment_method_id` & `account_id` (F5-04-A).
+- Migration `20261101050100_finance_rpcs.sql`: RPC `record_transaction`, `void_transaction`, `record_transfer`, `void_transfer`; helper `account_balance`, `cash_flow_summary` (F5-01-A, F5-02-A, F5-03-A).
+- Migration `20261101050200_account_balances_rpc.sql`: RPC bulk `account_balances(p_business_id)`.
+- pgTAP `transactions_rpcs.sql` (17 tests) + `transfers_cash_flow.sql` (16 tests).
+- Data layer `lib/features/finance/`:
+  - Model: `Transaction`, `Transfer`, `Category`, `AccountBalance`, `CashFlowSummary`.
+  - Service: `TransactionsService`, `TransfersService` (abstract + Supabase impl).
+  - Providers: `transactionsServiceProvider`, `transfersServiceProvider`, `transactionsProvider`, `transfersProvider`, `financeCategoriesProvider`, `financeAccountsProvider`, `accountBalancesProvider`, `cashFlowSummaryProvider`.
+- UI:
+  - `TransactionsScreen` (tab Semua/Masuk/Keluar, FAB, list, void dialog).
+  - `TransfersScreen` (list, FAB, void dialog).
+  - `DashboardScreen` rewrite: stat cards (income/expense/payments/net bulan ini), balance cards per akun, pull-to-refresh.
+- Widget test `test/features/finance/finance_test.dart` (6 tests).
+- `test/fake/fake_services.dart`: `FakeTransactionsService`, `FakeTransfersService`.
+
+### Changed
+- `lib/main.dart`: override `transactionsServiceProvider`, `transfersServiceProvider`.
+- `lib/features/more/more_screen.dart`: entry Transaksi + Transfer.
+- `lib/router/app_router.dart`: route `/app/more/transactions`, `/app/more/transfers`.
+- `lib/features/payments/payments_screen.dart`: deskripsi placeholder diperjelas.
+- `test/features/onboarding/onboarding_test.dart`: assertion dashboard (`Keuangan bulan ini`) + override finance providers.
+- `docs/DATABASE_SCHEMA.md`: bagian RPC finance.
+- `AGENTS.md`: konvensi pgTAP (parameter named untuk signature panjang).
+
+### Fixed
+- **UI overflow**: trailing `Column` di `TransactionListTile`/`TransferListTile` diubah ke `Row` (sebelumnya 12 px overflow karena tap target IconButton 48 px di dalam ListTile 56 px).
+
+### Tests
+- `flutter analyze` — No issues found.
+- `flutter test` — 37 tests passed (1 smoke + 4 auth + 3 onboarding + 5 navigasi + 6 customers + 7 orders + 5 payments + 6 finance).
+- `supabase test db` — Files=8, Tests=119, Result: PASS.
+
+### Known limitations (technical debt)
+- Controller di dialog one-shot tidak di-dispose.
+- Idempotency key belum dipakai di UI.
+- Form transfer belum ada widget test (hanya empty state + list).
+- `PaymentsScreen` masih placeholder; daftar semua payments menyusul di Fase 6.
+- Dashboard lintas domain (payments → balance) hanya di-invalidate manual oleh controller.

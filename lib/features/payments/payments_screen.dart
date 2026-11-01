@@ -10,7 +10,10 @@ class PaymentsScreen extends StatelessWidget {
     return const ComingSoonScreen(
       title: 'Pembayaran',
       icon: Icons.payments_outlined,
-      description: 'Modul pembayaran akan tersedia di Fase 4–5.',
+      description:
+          'Pembayaran dicatat per pesanan. Buka detail pesanan '
+          'untuk melihat atau menambah pembayaran. Daftar semua '
+          'pembayaran akan tersedia di Fase 6 (laporan).',
     );
   }
 }

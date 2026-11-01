@@ -5,6 +5,8 @@ import 'package:jeju_app/app.dart';
 import 'package:jeju_app/core/models/app_user.dart';
 import 'package:jeju_app/core/providers.dart';
 
+import 'package:jeju_app/features/finance/finance_providers.dart';
+
 import '../../fake/fake_services.dart';
 
 Widget _app({required FakeAuthService auth, required FakeBusinessService biz}) {
@@ -12,6 +14,8 @@ Widget _app({required FakeAuthService auth, required FakeBusinessService biz}) {
     overrides: [
       authServiceProvider.overrideWithValue(auth),
       businessServiceProvider.overrideWithValue(biz),
+      transactionsServiceProvider.overrideWithValue(FakeTransactionsService()),
+      transfersServiceProvider.overrideWithValue(FakeTransfersService()),
     ],
     child: const JeJuApp(),
   );
@@ -70,7 +74,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // DashboardScreen: section 'Ringkasan' unik, kartu pengguna menampilkan email.
-    expect(find.text('Ringkasan'), findsOneWidget);
+    expect(find.text('Keuangan bulan ini'), findsOneWidget);
     expect(find.text('u@example.com'), findsOneWidget);
   });
 }

@@ -7,6 +7,8 @@ import '../features/auth/sign_in_screen.dart';
 import '../features/auth/sign_up_screen.dart';
 import '../features/customers/customers_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
+import '../features/finance/transactions_screen.dart';
+import '../features/finance/transfers_screen.dart';
 import '../features/more/more_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/orders/orders_screen.dart';
@@ -72,6 +74,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'payments',
                     builder: (_, _) => const PaymentsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'transactions',
+                    builder: (_, _) => const TransactionsScreen(),
+                  ),
+                  GoRoute(
+                    path: 'transfers',
+                    builder: (_, _) => const TransfersScreen(),
                   ),
                   GoRoute(
                     path: 'reports',

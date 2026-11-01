@@ -256,6 +256,51 @@ Trigger `after insert on businesses` menyisipkan:
 
 Idempoten via unique `(business_id, name)`.
 
+### `record_transaction(p_business_id, p_type, p_amount, p_description, p_category_id, p_account_id, p_transaction_date, p_reference, p_attachment_url, p_idempotency_key) returns uuid`
+
+- Validasi membership (owner/admin/cashier). Viewer ditolak.
+- Validasi `p_type` in (`income`, `expense`), `p_amount > 0`, `p_description` non-empty.
+- Validasi `p_category_id` (jika ada) milik bisnis & tipenya sesuai `p_type`.
+- Validasi `p_account_id` (jika ada) milik bisnis.
+- Idempotency via `(business_id, idempotency_key)`.
+- Insert `status='confirmed'` + `audit_logs` (`transaction.recorded`).
+
+### `void_transaction(p_transaction_id, p_reason) returns uuid`
+
+- Menolak void untuk transaction yang bukan `status='confirmed'`, atau sudah reversal, atau sudah pernah di-void.
+- `p_reason` wajib non-empty.
+- Insert **baris baru** dengan `reversal_of_transaction_id` = transaksi asli, tipe sama, amount sama, category/account sama. Baris asli tetap `confirmed`.
+- Insert `audit_logs` (`transaction.voided`).
+
+### `record_transfer(p_business_id, p_from_account_id, p_to_account_id, p_amount, p_transfer_date, p_description, p_idempotency_key) returns uuid`
+
+- Validasi membership.
+- Validasi akun asal & tujuan milik bisnis, `from != to`, `p_amount > 0`.
+- Idempotency via `(business_id, idempotency_key)`.
+- Insert `status='confirmed'` + `audit_logs` (`transfer.recorded`).
+
+### `void_transfer(p_transfer_id, p_reason) returns void`
+
+- Menolak void jika transfer sudah `status='cancelled'`.
+- Set `status='cancelled'`, `cancelled_at`, `cancelled_by`, `cancel_reason`.
+- Insert `audit_logs` (`transfer.voided`).
+- Catatan: transfer menggunakan flag `status`, bukan reversal row.
+
+### `account_balance(p_account_id, p_as_of date default null) returns bigint`
+
+**Formula:**
+
+- `p_as_of` memfilter `transaction_date <= as_of` dsb; untuk `p_as_of` tanggal, transfer yang **dibatalkan SETELAH** tanggal itu tetap dihitung (historis).
+- Menolak jika viewer bukan member.
+
+### `account_balances(p_business_id) returns table(account_id, account_name, balance)`
+
+Bulk wrapper untuk dashboard — satu panggilan untuk semua akun aktif, hindari N+1.
+
+### `cash_flow_summary(p_business_id, p_from, p_to) returns jsonb`
+
+Mengembalikan `{income, expense, payments_net, net}`. Payments dihitung terpisah dari income (F5-01-A: tidak ada auto-jurnal ganda). `net = income - expense + payments_net`.
+
 ## RLS (Row Level Security)
 
 - Semua tabel tenant mengaktifkan RLS.

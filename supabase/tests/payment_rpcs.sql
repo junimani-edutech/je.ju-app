@@ -2,7 +2,7 @@
 -- Q3-A, Q4-A, E-01-A, Q8-A approved 2026-11-01.
 
 begin;
-select plan(25);
+select plan(27);
 
 -- ============================================================
 -- Fixtures
@@ -299,6 +299,57 @@ select throws_ok(
     'viewer attempt'
   )$$,
   '28000','NOT_A_MEMBER','viewer cannot void payment'
+);
+
+
+-- ============================================================
+-- 26-27: F5-04-A — reversal copies account_id & payment_method_id
+-- ============================================================
+set local request.jwt.claim.sub = 'a1111111-1111-1111-1111-111111111111';
+set local request.jwt.claims    = '{"sub":"a1111111-1111-1111-1111-111111111111","role":"authenticated"}';
+
+-- Record a payment WITH method + account
+select public.record_payment(
+  'a0000000-0000-0000-0000-000000000000'::uuid,
+  (select id from public.orders
+    where business_id = 'a0000000-0000-0000-0000-000000000000' limit 1),
+  200,
+  (select id from public.payment_methods
+    where business_id = 'a0000000-0000-0000-0000-000000000000'
+      and name = 'Cash' limit 1),
+  (select id from public.accounts
+    where business_id = 'a0000000-0000-0000-0000-000000000000'
+      and name = 'Kas Tunai' limit 1)
+);
+
+-- Void it
+select public.void_payment(
+  (select id from public.payments
+    where business_id = 'a0000000-0000-0000-0000-000000000000'
+      and amount = 200 and reversal_of_payment_id is null limit 1),
+  'copy test'
+);
+
+-- 26: reversal copies account_id
+select is(
+  (select account_id from public.payments
+    where business_id = 'a0000000-0000-0000-0000-000000000000'
+      and amount = 200 and reversal_of_payment_id is not null limit 1),
+  (select id from public.accounts
+    where business_id = 'a0000000-0000-0000-0000-000000000000'
+      and name = 'Kas Tunai' limit 1),
+  'reversal copies account_id from original'
+);
+
+-- 27: reversal copies payment_method_id
+select is(
+  (select payment_method_id from public.payments
+    where business_id = 'a0000000-0000-0000-0000-000000000000'
+      and amount = 200 and reversal_of_payment_id is not null limit 1),
+  (select id from public.payment_methods
+    where business_id = 'a0000000-0000-0000-0000-000000000000'
+      and name = 'Cash' limit 1),
+  'reversal copies payment_method_id from original'
 );
 
 select * from finish();
