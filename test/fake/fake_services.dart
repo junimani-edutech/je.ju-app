@@ -6,6 +6,8 @@ import 'package:jeju_app/core/models/business_member.dart';
 import 'package:jeju_app/features/customers/customer.dart';
 import 'package:jeju_app/features/orders/order.dart';
 import 'package:jeju_app/features/orders/orders_service.dart';
+import 'package:jeju_app/features/payments/payment.dart';
+import 'package:jeju_app/features/payments/payments_service.dart';
 import 'package:jeju_app/features/customers/customers_service.dart';
 
 class FakeAuthService implements AuthService {
@@ -330,5 +332,116 @@ class FakeOrdersService implements OrdersService {
       createdAt: old.createdAt,
       updatedAt: DateTime.now(),
     );
+  }
+}
+
+class FakePaymentsService implements PaymentsService {
+  FakePaymentsService({
+    List<Payment> initialPayments = const [],
+    List<PaymentMethod> initialMethods = const [],
+    List<Account> initialAccounts = const [],
+  }) : _payments = List.of(initialPayments),
+       _methods = List.of(initialMethods),
+       _accounts = List.of(initialAccounts);
+
+  final List<Payment> _payments;
+  final List<PaymentMethod> _methods;
+  final List<Account> _accounts;
+
+  int recordCallCount = 0;
+  int voidCallCount = 0;
+  String? lastRecordedIdempotencyKey;
+  int? lastRecordedAmount;
+  String? lastVoidReason;
+
+  @override
+  Future<List<Payment>> listForOrder(String orderId) async {
+    return _payments.where((p) => p.orderId == orderId).toList();
+  }
+
+  @override
+  Future<List<PaymentMethod>> listMethods(String businessId) async {
+    return _methods.where((m) => m.businessId == businessId).toList();
+  }
+
+  @override
+  Future<List<Account>> listAccounts(String businessId) async {
+    return _accounts.where((a) => a.businessId == businessId).toList();
+  }
+
+  @override
+  Future<String> record({
+    required String businessId,
+    required String orderId,
+    required int amount,
+    String? paymentMethodId,
+    String? accountId,
+    DateTime? paymentDate,
+    String? reference,
+    String? notes,
+    String? idempotencyKey,
+  }) async {
+    recordCallCount++;
+    lastRecordedAmount = amount;
+    lastRecordedIdempotencyKey = idempotencyKey;
+
+    if (idempotencyKey != null) {
+      final existing = _payments
+          .where((p) => p.businessId == businessId && p.notes == idempotencyKey)
+          .firstOrNull;
+      if (existing != null) return existing.id;
+    }
+
+    final id = 'fake-pay-${_payments.length + 1}';
+    final now = DateTime.now();
+    _payments.insert(
+      0,
+      Payment(
+        id: id,
+        businessId: businessId,
+        orderId: orderId,
+        amount: amount,
+        currency: 'IDR',
+        paymentDate: paymentDate ?? now,
+        status: 'confirmed',
+        createdAt: now,
+        paymentMethodId: paymentMethodId,
+        accountId: accountId,
+        reference: reference,
+        notes: notes ?? idempotencyKey,
+        confirmedAt: now,
+      ),
+    );
+    return id;
+  }
+
+  @override
+  Future<String> voidPayment({
+    required String paymentId,
+    required String reason,
+  }) async {
+    voidCallCount++;
+    lastVoidReason = reason;
+
+    final original = _payments.firstWhere((p) => p.id == paymentId);
+    final reversalId = 'fake-pay-${_payments.length + 1}';
+    final now = DateTime.now();
+    _payments.insert(
+      0,
+      Payment(
+        id: reversalId,
+        businessId: original.businessId,
+        orderId: original.orderId,
+        amount: original.amount,
+        currency: original.currency,
+        paymentDate: now,
+        status: 'confirmed',
+        createdAt: now,
+        reversalOfPaymentId: paymentId,
+        notes: 'Reversal: $reason',
+        confirmedAt: now,
+      ),
+    );
+    return reversalId;
   }
 }

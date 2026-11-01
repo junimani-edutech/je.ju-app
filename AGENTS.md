@@ -73,3 +73,9 @@ Codespaces Linux tidak menggantikan macOS/Xcode untuk signing/build iOS atau lin
 - Di pgTAP, semua query dalam satu file test berjalan dalam satu transaksi (satu `begin/rollback`). Artinya `now()`/`created_at` **identik** untuk semua baris yang di-insert. Jangan pakai `order by created_at` untuk tie-break. Pakai `id`, `order_number`, atau cek eksistensi via `array_agg` / `count(*)`.
 - Untuk multi-row assertions (mis. "dua order_number ada"), gunakan `array_agg(col order by col)` + `is(..., array[...], ...)` — deterministik dan mudah dibaca.
 - Jangan andalkan `unique` untuk membuktikan nilai — verifikasi nilai secara eksplisit.
+
+## Flutter dialog & controller pitfalls
+
+- **Jangan** `dispose()` `TextEditingController` yang dibuat di dalam method setelah dialog/sheet close. Dialog masih dalam animasi close ~150ms ketika method selesai, sehingga widget masih memakai controller di frame berikutnya → crash "A TextEditingController was used after being disposed".
+- Untuk dialog one-shot: biarkan controller sampai GC, atau gunakan `TextFormField` + capture variable lokal, atau buat dialog sebagai `StatefulWidget` terpisah dengan controller di `State`.
+- Controller yang merupakan field `State` (mis. `late final TextEditingController x`) **tetap** di-dispose di `State.dispose()`. Aman karena lifecycle-nya dikelola State.

@@ -215,6 +215,47 @@ Mengacu pada `DECISIONS.md`:
 - Menolak order yang sudah `status='cancelled'` (raise `ALREADY_CANCELLED`).
 - Set `orders.status='cancelled'`, `cancelled_at`, `cancelled_by`, `cancel_reason`, `order_status_id=cancelled` (jika ada). Insert history dengan `notes = p_reason || 'Order cancelled'` atomik.
 
+### `record_payment(p_business_id, p_order_id, p_amount, p_payment_method_id, p_account_id, p_payment_date, p_reference, p_notes, p_idempotency_key) returns uuid`
+
+- Validasi membership (role owner/admin/cashier). Viewer ditolak.
+- Validasi order ada di `p_business_id`, bukan `cancelled`.
+- Validasi `p_payment_method_id` dan `p_account_id` (jika non-null) milik bisnis.
+- Validasi `p_amount > 0`.
+- Idempotency: jika `p_idempotency_key` sudah dipakai di business ini, return ID yang sudah ada (tidak membuat baris baru).
+- Insert payment `status='confirmed'`, `confirmed_at=now()`, `confirmed_by=auth.uid()`.
+- Recompute `orders.paid_amount` via helper `order_paid_amount(order_id)` dan `orders.payment_status` via helper `order_payment_status(order_id)`.
+- Insert `audit_logs` (`payment.recorded`).
+- **Overpay diizinkan** → status `overpaid`. Deteksi kelebihan bayar di reporting (Fase 6).
+
+### `void_payment(p_payment_id, p_reason) returns uuid`
+
+- Validasi membership (owner/admin/cashier).
+- Menolak void jika payment bukan `status='confirmed'`, atau payment itu sendiri reversal (`reversal_of_payment_id is not null`), atau sudah pernah di-void (ada reversal lain yang menunjuk ke payment ini).
+- `p_reason` wajib non-empty.
+- Insert payment **baru** dengan `amount` sama, `reversal_of_payment_id = p_payment_id`, `status='confirmed'`, `notes='Reversal: <reason>'`. Payment asli tetap `confirmed` (tidak dihapus, tidak diubah — sesuai D-04).
+- Recompute `orders.paid_amount`/`payment_status` order terkait.
+- Insert `audit_logs` (`payment.voided`).
+
+### Helper: `order_paid_amount(p_order_id uuid) returns bigint`
+
+`Σ amount` untuk `status='confirmed'` dan `reversal_of_payment_id is null`, dikurangi `Σ amount` untuk `status='confirmed'` dan `reversal_of_payment_id is not null`.
+
+### Helper: `order_payment_status(p_order_id uuid) returns text`
+
+Bandingkan `order_paid_amount` vs `orders.total_amount`:
+- `0` → `unpaid`
+- `0 < paid < total` → `partial`
+- `paid = total` → `paid`
+- `paid > total` → `overpaid`
+
+### Seed default payment data (Q8-A)
+
+Trigger `after insert on businesses` menyisipkan:
+- `payment_methods`: `Cash`, `Transfer Bank`, `E-Wallet`.
+- `accounts`: `Kas Tunai` (cash), `Rekening Bank` (bank), `E-Wallet` (ewallet).
+
+Idempoten via unique `(business_id, name)`.
+
 ## RLS (Row Level Security)
 
 - Semua tabel tenant mengaktifkan RLS.

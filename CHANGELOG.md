@@ -237,3 +237,35 @@
 - `flutter analyze` — No issues found.
 - `flutter test` — 26 tests passed (1 smoke + 4 auth + 3 onboarding + 5 navigasi + 6 customers + 7 orders).
 - `supabase test db` — Files=5, Tests=59, Result: PASS.
+
+## 2026-11-01 — Fase 4: Pembayaran (Langkah 11)
+
+### Added
+- Migration `20261101040000_seed_payment_methods_and_accounts.sql`: seed default `payment_methods` (Cash/Transfer Bank/E-Wallet) + `accounts` (Kas Tunai/Rekening Bank/E-Wallet) saat bisnis dibuat (Q8-A) + backfill.
+- Migration `20261101040100_record_void_payment_rpcs.sql`: RPC `record_payment`, `void_payment`, helper `order_paid_amount`, `order_payment_status`. Q3-A (satu payment per order), Q4-A (refund = payment baru + `reversal_of_payment_id`), E-01-A (recompute di RPC).
+- pgTAP `payment_rpcs.sql` (25 tests): seed, happy path, idempotency, overpay, void, void-twice, void-reversal, role validation.
+- Data layer: `lib/features/payments/{payment,payments_service,supabase_payments_service,payments_providers}.dart`. Model `Payment` (dengan `signedAmount`), `PaymentMethod`, `Account`. `paymentsControllerProvider` (`record`, `voidPayment`) + invalidate `paymentsForOrderProvider` & `ordersProvider`.
+- UI: `PaymentFormSheet` (nominal default sisa tagihan, metode/akun optional), `PaymentListTile` (badge Reversal), `PaymentsSection` (list + tombol Catat/Void, role-gated, sembunyi saat cancelled).
+- `OrderDetailSheet` reaktif terhadap `ordersProvider` (`liveOrder`) + menampilkan `PaymentsSection`. Field `_kv('Dibayar', ...)` baru.
+- Widget test `test/features/payments/payments_test.dart` (5 tests).
+
+### Changed
+- `lib/main.dart`: override `paymentsServiceProvider` di `ProviderScope`.
+- `lib/features/orders/widgets/order_detail_sheet.dart`: rewrite — `liveOrder`, `PaymentsSection`, tombol Void/Catat.
+- `test/fake/fake_services.dart`: `FakePaymentsService` (record/void/list, in-memory).
+- `docs/DATABASE_SCHEMA.md`: RPC `record_payment`, `void_payment`, helper, seed default.
+- `AGENTS.md`: bagian "Flutter dialog & controller pitfalls".
+
+### Fixed
+- Crash `A TextEditingController was used after being disposed` di `payments_section.dart` / `order_detail_sheet.dart` saat dialog close. Root cause: `dispose()` pada controller yang dibuat di method sebelum dialog selesai animasi close. Fix: hapus `dispose()` (leak minor, dicatat sebagai technical debt).
+
+### Tests
+- `flutter analyze` — No issues found.
+- `flutter test` — 31 tests passed.
+- `supabase test db` — Files=6, Tests=84, Result: PASS.
+
+### Known limitations (technical debt)
+- Idempotency key belum dipakai di UI form (hanya disable tombol).
+- `FakeOrdersService` tidak merecompute `paid_amount` (Supabase asli RPC melakukannya).
+- Controller di dialog one-shot tidak di-dispose.
+- Dialog change status / cancel order belum punya widget test.

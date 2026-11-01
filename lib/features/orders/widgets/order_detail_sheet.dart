@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
+import '../../payments/widgets/payments_section.dart';
 import '../order.dart';
 import '../orders_providers.dart';
 
@@ -29,6 +30,16 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
   void initState() {
     super.initState();
     _itemsFuture = ref.read(ordersServiceProvider).listItems(widget.order.id);
+  }
+
+  /// Cari versi terbaru order ini dari ordersProvider agar header reaktif
+  /// setelah record/void payment. Fallback ke widget.order bila belum ada.
+  Order _liveOrder() {
+    final list = ref.watch(ordersProvider).value ?? const <Order>[];
+    for (final o in list) {
+      if (o.id == widget.order.id) return o;
+    }
+    return widget.order;
   }
 
   Future<void> _changeStatus() async {
@@ -122,9 +133,8 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
       ),
     );
 
-    notesCtrl.dispose();
     if (result == true && mounted) {
-      Navigator.of(context).maybePop();
+      // Sheet tidak perlu ditutup; liveOrder otomatis re-render.
     }
   }
 
@@ -174,7 +184,7 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
                   ? null
                   : reasonCtrl.text.trim(),
             );
-        if (mounted) Navigator.of(context).maybePop();
+        // liveOrder re-render; sheet tetap terbuka dengan status cancelled.
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context)
@@ -182,22 +192,22 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
         }
       }
     }
-    reasonCtrl.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final liveOrder = _liveOrder();
     final canWrite = ref.watch(currentMemberProvider).value?.canWrite ?? false;
     final statusesAsync = ref.watch(orderStatusesProvider);
     final statusMap = <String, OrderStatus>{
       for (final s in statusesAsync.value ?? <OrderStatus>[]) s.id: s,
     };
-    final currentStatus = widget.order.orderStatusId != null
-        ? statusMap[widget.order.orderStatusId!]
+    final currentStatus = liveOrder.orderStatusId != null
+        ? statusMap[liveOrder.orderStatusId!]
         : null;
-    final dateStr = widget.order.orderDate.toIso8601String().substring(0, 10);
-    final statusLabel = widget.order.isCancelled
+    final dateStr = liveOrder.orderDate.toIso8601String().substring(0, 10);
+    final statusLabel = liveOrder.isCancelled
         ? 'Dibatalkan'
         : (currentStatus?.name ?? '—');
 
@@ -213,11 +223,11 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(widget.order.orderNumber, style: theme.textTheme.titleLarge),
+            Text(liveOrder.orderNumber, style: theme.textTheme.titleLarge),
             const SizedBox(height: 4),
             Text('Tanggal: $dateStr'),
             Text('Status: $statusLabel'),
-            Text('Pembayaran: ${widget.order.paymentStatus}'),
+            Text('Pembayaran: ${liveOrder.paymentStatus}'),
             const Divider(),
             Text('Item', style: theme.textTheme.titleSmall),
             FutureBuilder<List<OrderItem>>(
@@ -258,19 +268,21 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
               },
             ),
             const Divider(),
-            _kv('Subtotal', widget.order.subtotalAmount),
-            _kv('Diskon', -widget.order.discountAmount),
-            _kv('Biaya tambahan', widget.order.additionalFeeAmount),
-            _kv('Ongkir', widget.order.shippingAmount),
+            _kv('Subtotal', liveOrder.subtotalAmount),
+            _kv('Diskon', -liveOrder.discountAmount),
+            _kv('Biaya tambahan', liveOrder.additionalFeeAmount),
+            _kv('Ongkir', liveOrder.shippingAmount),
             const Divider(),
-            _kv('Total', widget.order.totalAmount, bold: true),
-            if (widget.order.notes != null &&
-                widget.order.notes!.isNotEmpty) ...[
+            _kv('Total', liveOrder.totalAmount, bold: true),
+            _kv('Dibayar', liveOrder.paidAmount),
+            const Divider(),
+            PaymentsSection(order: liveOrder),
+            if (liveOrder.notes != null && liveOrder.notes!.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('Catatan: ${widget.order.notes}'),
+              Text('Catatan: ${liveOrder.notes}'),
             ],
             const SizedBox(height: 16),
-            if (canWrite && !widget.order.isCancelled) ...[
+            if (canWrite && !liveOrder.isCancelled) ...[
               FilledButton.icon(
                 key: const Key('order_detail_change_status'),
                 onPressed: _changeStatus,
