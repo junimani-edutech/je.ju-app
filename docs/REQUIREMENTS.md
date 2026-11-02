@@ -116,6 +116,8 @@ Hak akses harus diterapkan di antarmuka dan backend/database. Menyembunyikan tom
 - Filter tanggal, kategori, status, pelanggan, dan akun; template laporan dapat disimpan oleh pengguna berwenang.
 - PDF dan CSV menjadi prioritas; XLSX ditambahkan setelah library dan kompatibilitas diuji.
 
+**Addendum 2026-11-01 (D-05 revised):** Prioritas ekspor **direvisi**. Implementasi Fase 6 menghasilkan **CSV + XLSX**; **PDF ditunda** ke fase berikutnya. Alasan: permintaan pengguna, PDF butuh library `pdf` + setup tambahan (sign/watermark) yang tidak mendesak. Lihat `DECISIONS.md` D-05.
+
 ### 5.10 Tim dan audit
 
 - Undangan anggota, peran, pencabutan akses, dan audit tindakan sensitif.

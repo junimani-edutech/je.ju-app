@@ -366,3 +366,48 @@ Tidak memblokir draft skema, tetapi harus diputuskan sebelum modul terkait:
 - Test isolasi RLS akan dibuat saat Supabase siap.
 - Tidak ada klaim tes lulus di dokumen ini.
 - Rumus laba belum final.
+
+## RPC Fase 6 — Pengaturan Bisnis & Laporan
+
+### `update_business_profile(p_business_id, p_name, p_legal_name, p_contact_email, p_contact_phone, p_address, p_timezone) returns void`
+
+- Validasi membership (owner/admin). Cashier, order_staff, viewer ditolak.
+- Validasi `p_name` non-empty dan `p_timezone` non-empty.
+- **Tidak** mengubah `currency` (D-07 locked IDR).
+- Update baris `businesses`, trigger `updated_at` otomatis.
+- Insert `audit_logs` (`business.profile_updated`).
+
+### `report_summary(p_business_id, p_from, p_to) returns jsonb`
+
+Semua role boleh baca (viewer, order_staff, cashier, admin, owner). Ini query baca, bukan aksi.
+
+Return JSON:
+```json
+{
+  "from": "YYYY-MM-DD",
+  "to": "YYYY-MM-DD",
+  "orders_count": 0,
+  "orders_total": 0,
+  "payments_received": 0,
+  "receivables_remaining": 0,
+  "income": 0,
+  "expense": 0,
+  "payments_net": 0,
+  "cash_flow_net": 0,
+  "balance_by_account": [
+    {"account_id": "...", "account_name": "...", "balance": 0}
+  ]
+}
+
+```
+
+
+**Formula:**
+- `orders_count` / `orders_total`: order non-cancelled dalam rentang `order_date BETWEEN p_from AND p_to`.
+- `payments_received`: Σ payments(confirmed) - Σ payments(confirmed reversal) di `payment_date BETWEEN p_from AND p_to`.
+- `receivables_remaining`: snapshot Σ (total_amount - paid_amount) untuk order aktif (unpaid/partial). **Tidak** rentang tanggal.
+- `income` / `expense` / `payments_net` / `cash_flow_net`: dari `cash_flow_summary(business_id, from, to)`.
+- `balance_by_account`: snapshot dari `account_balances(business_id)`.
+- Laba operasional **belum dihitung** (D-02 belum final).
+
+**Ekspor (client-side, Fase 6):** CSV + XLSX; PDF ditunda (D-05 revised).

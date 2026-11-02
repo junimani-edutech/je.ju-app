@@ -30,7 +30,10 @@ class SupabaseBusinessService implements BusinessService {
   Future<List<Business>> listMyBusinesses() async {
     final rows = await _client
         .from('businesses')
-        .select('id, name, timezone, currency')
+        .select(
+          'id, name, legal_name, contact_email, contact_phone, address, '
+          'timezone, currency',
+        )
         .order('created_at');
     return (rows as List)
         .map((e) => Business.fromMap(e as Map<String, dynamic>))
@@ -49,5 +52,29 @@ class SupabaseBusinessService implements BusinessService {
         .maybeSingle();
     if (row == null) return null;
     return BusinessMember.fromMap(row);
+  }
+
+  @override
+  Future<void> updateProfile({
+    required String businessId,
+    required String name,
+    String? legalName,
+    String? contactEmail,
+    String? contactPhone,
+    String? address,
+    String? timezone,
+  }) async {
+    await _client.rpc(
+      'update_business_profile',
+      params: {
+        'p_business_id': businessId,
+        'p_name': name,
+        'p_legal_name': legalName,
+        'p_contact_email': contactEmail,
+        'p_contact_phone': contactPhone,
+        'p_address': address,
+        'p_timezone': timezone,
+      },
+    );
   }
 }

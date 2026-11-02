@@ -17,7 +17,7 @@ Urutan acuan jika ada konflik:
 | D-02 | Metode pengakuan pendapatan? | Pisahkan kas masuk dan laba sampai aturan disetujui. | APPROVED | Rumus uang | 2026-11-01 |
 | D-03 | Buat transaksi offline? | Ya untuk operasi yang ditentukan; transaksi uang bisa menunggu konfirmasi. | APPROVED | Arsitektur, keamanan | 2026-11-01 |
 | D-04 | Hapus transaksi terkonfirmasi? | Tidak; gunakan reversal/cancel dengan audit. | APPROVED | Keamanan, audit | 2026-11-01 |
-| D-05 | Ekspor awal? | PDF dan CSV; XLSX setelah diuji. | PROPOSED | Fitur | — |
+| D-05 | Ekspor awal? | PDF dan CSV; XLSX setelah diuji. | **APPROVED (revised)** | Fitur | 2026-11-01 |
 | D-06 | Batas pengguna/data dan biaya cloud? | Tetapkan setelah estimasi pemakaian dan pemeriksaan kuota. | PROPOSED | Biaya/operasional | — |
 | D-07 | Multi-currency? | Tidak untuk versi awal; IDR. | APPROVED | Rumus uang, arsitektur | 2026-11-01 |
 | D-08 | Retensi data lokal setelah akses dicabut? | Tetapkan kebijakan; batasi cache sensitif. | PROPOSED | Keamanan/privasi | — |
@@ -30,6 +30,10 @@ Urutan acuan jika ada konflik:
 - Approval D-07 mengunci IDR untuk versi awal. Skema memakai `char(3)` dengan check `currency = 'IDR'`.
 
 ## Perubahan status
+
+- 2026-11-01: D-05 diubah menjadi **APPROVED (revised)**. Scope: **CSV + XLSX**, **tanpa PDF**. Ini menyimpang dari requirements asli §5.9 (PDF diprioritaskan). Alasan: permintaan pengguna; PDF ditunda ke fase berikutnya (butuh library `pdf` + setup sign/watermark yang tidak mendesak).
+
+
 
 - 2026-11-01: D-01, D-02, D-03, D-04, D-07 diubah dari PROPOSED menjadi APPROVED atas persetujuan pengguna.
 - D-05, D-06, D-08 tetap PROPOSED.

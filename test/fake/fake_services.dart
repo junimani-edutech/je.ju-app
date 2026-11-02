@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:jeju_app/core/auth/auth_service.dart';
 import 'package:jeju_app/core/business/business_service.dart';
 import 'package:jeju_app/core/models/app_user.dart';
@@ -13,6 +15,9 @@ import 'package:jeju_app/features/finance/finance_models.dart';
 import 'package:jeju_app/features/finance/finance_services.dart';
 import 'package:jeju_app/features/finance/transaction.dart';
 import 'package:jeju_app/features/finance/transfer.dart';
+import 'package:jeju_app/features/reports/report_service.dart';
+import 'package:jeju_app/features/reports/export_service.dart';
+import 'package:jeju_app/features/reports/report_summary.dart';
 import 'package:jeju_app/features/customers/customers_service.dart';
 
 class FakeAuthService implements AuthService {
@@ -107,6 +112,47 @@ class FakeBusinessService implements BusinessService {
   @override
   Future<BusinessMember?> getMemberForCurrentUser(String businessId) async =>
       _member;
+
+  int updateProfileCallCount = 0;
+  Map<String, dynamic>? lastUpdateProfileArgs;
+  bool throwOnUpdateProfile = false;
+
+  @override
+  Future<void> updateProfile({
+    required String businessId,
+    required String name,
+    String? legalName,
+    String? contactEmail,
+    String? contactPhone,
+    String? address,
+    String? timezone,
+  }) async {
+    updateProfileCallCount++;
+    lastUpdateProfileArgs = {
+      'p_business_id': businessId,
+      'p_name': name,
+      'p_legal_name': legalName,
+      'p_contact_email': contactEmail,
+      'p_contact_phone': contactPhone,
+      'p_address': address,
+      'p_timezone': timezone,
+    };
+    if (throwOnUpdateProfile) throw Exception('update profile failed');
+    final idx = _businesses.indexWhere((b) => b.id == businessId);
+    if (idx >= 0) {
+      final old = _businesses[idx];
+      _businesses[idx] = Business(
+        id: old.id,
+        name: name,
+        timezone: timezone ?? old.timezone,
+        currency: old.currency,
+        legalName: legalName,
+        contactEmail: contactEmail,
+        contactPhone: contactPhone,
+        address: address,
+      );
+    }
+  }
 }
 
 class FakeCustomersService implements CustomersService {
@@ -648,5 +694,101 @@ class FakeTransfersService implements TransfersService {
       cancelledAt: DateTime.now(),
       cancelReason: reason,
     );
+  }
+}
+
+class FakeReportService implements ReportService {
+  FakeReportService({ReportSummary? initial})
+    : _summary =
+          initial ??
+          ReportSummary.empty(
+            from: DateTime(2026, 11, 1),
+            to: DateTime(2026, 11, 30),
+          );
+
+  ReportSummary _summary;
+  int callCount = 0;
+  DateTime? lastFrom;
+  DateTime? lastTo;
+  bool throwOnCall = false;
+
+  set summary(ReportSummary s) => _summary = s;
+
+  @override
+  Future<ReportSummary> reportSummary({
+    required String businessId,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    callCount++;
+    lastFrom = from;
+    lastTo = to;
+    if (throwOnCall) throw Exception('report failed');
+    return _summary;
+  }
+}
+
+class FakeExportService implements ExportService {
+  int ordersCsvCalls = 0;
+  int ordersXlsxCalls = 0;
+  int paymentsCsvCalls = 0;
+  int transactionsCsvCalls = 0;
+  String? lastFilename;
+  bool throwOnExport = false;
+
+  ExportBundle _bundle(String name, String mime) {
+    lastFilename = name;
+    return ExportBundle(
+      filename: name,
+      bytes: Uint8List.fromList([1, 2, 3]),
+      mimeType: mime,
+    );
+  }
+
+  @override
+  ExportBundle ordersCsv({
+    required String businessId,
+    required ReportSummary summary,
+    required List<Order> orders,
+  }) {
+    ordersCsvCalls++;
+    if (throwOnExport) throw Exception('export failed');
+    return _bundle('orders.csv', 'text/csv');
+  }
+
+  @override
+  ExportBundle ordersXlsx({
+    required String businessId,
+    required ReportSummary summary,
+    required List<Order> orders,
+  }) {
+    ordersXlsxCalls++;
+    if (throwOnExport) throw Exception('export failed');
+    return _bundle(
+      'orders.xlsx',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    );
+  }
+
+  @override
+  ExportBundle paymentsCsv({
+    required String businessId,
+    required ReportSummary summary,
+    required List<Payment> payments,
+  }) {
+    paymentsCsvCalls++;
+    if (throwOnExport) throw Exception('export failed');
+    return _bundle('payments.csv', 'text/csv');
+  }
+
+  @override
+  ExportBundle transactionsCsv({
+    required String businessId,
+    required ReportSummary summary,
+    required List<Transaction> transactions,
+  }) {
+    transactionsCsvCalls++;
+    if (throwOnExport) throw Exception('export failed');
+    return _bundle('transactions.csv', 'text/csv');
   }
 }

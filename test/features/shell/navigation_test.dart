@@ -6,6 +6,7 @@ import 'package:jeju_app/core/models/app_user.dart';
 import 'package:jeju_app/core/providers.dart';
 import 'package:jeju_app/features/customers/customers_providers.dart';
 import 'package:jeju_app/features/orders/orders_providers.dart';
+import 'package:jeju_app/features/reports/report_providers.dart';
 
 import '../../fake/fake_services.dart';
 
@@ -15,6 +16,7 @@ Widget _app({required FakeAuthService auth, required FakeBusinessService biz}) {
       authServiceProvider.overrideWithValue(auth),
       businessServiceProvider.overrideWithValue(biz),
       ordersServiceProvider.overrideWithValue(FakeOrdersService()),
+      reportServiceProvider.overrideWithValue(FakeReportService()),
       customersServiceProvider.overrideWithValue(FakeCustomersService()),
     ],
     child: const JeJuApp(),
@@ -149,10 +151,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Laporan dan ekspor akan tersedia di Fase 6.'),
-        findsOneWidget,
-      );
+      expect(find.text('Ringkasan'), findsOneWidget);
     });
   });
 }

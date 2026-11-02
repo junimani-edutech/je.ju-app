@@ -311,3 +311,44 @@
 - Form transfer belum ada widget test (hanya empty state + list).
 - `PaymentsScreen` masih placeholder; daftar semua payments menyusul di Fase 6.
 - Dashboard lintas domain (payments → balance) hanya di-invalidate manual oleh controller.
+
+## 2026-11-02 — Fase 6: Pengaturan, Laporan, Ekspor (Langkah 13)
+
+### Added
+- Migration `20261101060000_update_business_profile_rpc.sql`.
+- Migration `20261101060100_report_summary_rpc.sql`.
+- pgTAP `business_profile_rpc.sql` (13) + `report_summary_rpc.sql` (13).
+- Model `Business` diperluas: `legalName`, `contactEmail`, `contactPhone`, `address`.
+- `BusinessService.updateProfile` + Supabase impl.
+- `ReportService` + `reportSummaryProvider`.
+- `ReportSummary` model + `fromJson`.
+- `ExportService` + `DefaultExportService` (CSV + XLSX).
+- Web download handler + stub non-web.
+- UI: `SettingsScreen` rewrite, `ReportsScreen` rewrite.
+- Widget tests: `settings_test.dart` (4), `reports_test.dart` (4), `export_test.dart` (2).
+- Dependencies: `csv: ^6.0.0`, `excel: ^4.0.6`.
+
+### Changed
+- `lib/main.dart`: override `reportServiceProvider`.
+- `test/fake/fake_services.dart`: `FakeReportService`, `FakeExportService`, `FakeBusinessService.updateProfile`.
+- `test/features/shell/navigation_test.dart`: assertion Laporan, override report provider.
+- `DECISIONS.md`: D-05 APPROVED (revised).
+- `docs/REQUIREMENTS.md`: addendum 5.9.
+- `docs/DATABASE_SCHEMA.md`: RPC Fase 6.
+- `CURRENT_STATE.md`: Fase 6 selesai.
+
+### Fixed
+- RLS audit_logs memblokir query agregat di test — fix dengan `reset role`.
+- UUID non-hex pada `report_summary_rpc.sql` — diganti hex.
+
+### Tests
+- `flutter analyze` — No issues found.
+- `flutter test` — 47 tests passed.
+- `supabase test db` — Files=10, Tests=145, Result: PASS.
+
+### Known limitations
+- PDF ditunda.
+- `paymentsCsv` belum punya tombol UI.
+- Mobile file save native belum ada.
+- Web download via `dart:html` (deprecated).
+- Custom columns (req 5.8) ditunda.

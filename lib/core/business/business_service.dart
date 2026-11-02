@@ -12,4 +12,14 @@ abstract class BusinessService {
   Future<List<Business>> listMyBusinesses();
 
   Future<BusinessMember?> getMemberForCurrentUser(String businessId);
+
+  Future<void> updateProfile({
+    required String businessId,
+    required String name,
+    String? legalName,
+    String? contactEmail,
+    String? contactPhone,
+    String? address,
+    String? timezone,
+  });
 }
