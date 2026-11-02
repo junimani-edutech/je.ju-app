@@ -18,6 +18,9 @@ import 'package:jeju_app/features/finance/transfer.dart';
 import 'package:jeju_app/features/reports/report_service.dart';
 import 'package:jeju_app/features/reports/export_service.dart';
 import 'package:jeju_app/features/reports/report_summary.dart';
+import 'package:jeju_app/features/members/business_member_info.dart';
+import 'package:jeju_app/features/members/invitation.dart';
+import 'package:jeju_app/features/members/members_service.dart';
 import 'package:jeju_app/features/customers/customers_service.dart';
 
 class FakeAuthService implements AuthService {
@@ -790,5 +793,78 @@ class FakeExportService implements ExportService {
     transactionsCsvCalls++;
     if (throwOnExport) throw Exception('export failed');
     return _bundle('transactions.csv', 'text/csv');
+  }
+}
+
+class FakeMembersService implements MembersService {
+  FakeMembersService({
+    List<BusinessMemberInfo> initialMembers = const [],
+    List<Invitation> initialInvitations = const [],
+  }) : _members = List.of(initialMembers),
+       _invitations = List.of(initialInvitations);
+
+  final List<BusinessMemberInfo> _members;
+  final List<Invitation> _invitations;
+
+  int createCallCount = 0;
+  int revokeCallCount = 0;
+  int acceptCallCount = 0;
+  String? lastCreatedEmail;
+  String? lastCreatedRole;
+  String? lastRevokedId;
+  String? lastAcceptedToken;
+  bool throwOnCreate = false;
+  bool throwOnAccept = false;
+
+  @override
+  Future<List<BusinessMemberInfo>> listMembers(String businessId) async =>
+      List.of(_members);
+
+  @override
+  Future<List<Invitation>> listPendingInvitations(String businessId) async =>
+      List.of(_invitations);
+
+  @override
+  Future<CreatedInvitation> createInvitation({
+    required String businessId,
+    required String email,
+    required String role,
+  }) async {
+    createCallCount++;
+    lastCreatedEmail = email;
+    lastCreatedRole = role;
+    if (throwOnCreate) throw Exception('create invitation failed');
+    final now = DateTime.now();
+    final inv = Invitation(
+      id: 'inv-${_invitations.length + 1}',
+      businessId: businessId,
+      email: email,
+      role: role,
+      token: 'tok-${_invitations.length + 1}',
+      status: 'pending',
+      expiresAt: now.add(const Duration(days: 7)),
+      createdAt: now,
+    );
+    _invitations.insert(0, inv);
+    return CreatedInvitation(
+      invitationId: inv.id,
+      token: inv.token,
+      expiresAt: inv.expiresAt,
+    );
+  }
+
+  @override
+  Future<void> revokeInvitation(String invitationId) async {
+    revokeCallCount++;
+    lastRevokedId = invitationId;
+    _invitations.removeWhere((i) => i.id == invitationId);
+  }
+
+  @override
+  Future<String> acceptInvitation(String token) async {
+    acceptCallCount++;
+    lastAcceptedToken = token;
+    if (throwOnAccept) throw Exception('accept failed');
+    return 'biz-1';
   }
 }

@@ -9,6 +9,8 @@ import '../features/customers/customers_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/finance/transactions_screen.dart';
 import '../features/finance/transfers_screen.dart';
+import '../features/members/accept_invite_screen.dart';
+import '../features/members/members_screen.dart';
 import '../features/more/more_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/orders/orders_screen.dart';
@@ -31,6 +33,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/sign-in', builder: (_, _) => const SignInScreen()),
       GoRoute(path: '/sign-up', builder: (_, _) => const SignUpScreen()),
       GoRoute(path: '/onboarding', builder: (_, _) => const OnboardingScreen()),
+      GoRoute(
+        path: '/accept-invite',
+        builder: (_, _) => const AcceptInviteScreen(),
+      ),
 
       // Shell: branch 0..3
       StatefulShellRoute.indexedStack(
@@ -88,6 +94,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     builder: (_, _) => const ReportsScreen(),
                   ),
                   GoRoute(
+                    path: 'members',
+                    builder: (_, _) => const MembersScreen(),
+                  ),
+                  GoRoute(
                     path: 'settings',
                     builder: (_, _) => const SettingsScreen(),
                   ),
@@ -103,14 +113,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       final hasBusiness = ref.read(hasBusinessProvider).value ?? false;
       final path = state.matchedLocation;
       final isAuthRoute = path == '/sign-in' || path == '/sign-up';
+      final isPublicRoute = isAuthRoute || path == '/accept-invite';
 
       if (!isAuthed) {
-        return isAuthRoute ? null : '/sign-in';
+        return isPublicRoute ? null : '/sign-in';
       }
       if (isAuthRoute) {
         return hasBusiness ? '/app/dashboard' : '/onboarding';
       }
-      if (!hasBusiness && path != '/onboarding') return '/onboarding';
+      if (!hasBusiness && path != '/onboarding' && path != '/accept-invite') {
+        return '/onboarding';
+      }
       if (hasBusiness && path == '/onboarding') return '/app/dashboard';
       if (hasBusiness && path == '/home') return '/app/dashboard';
       return null;

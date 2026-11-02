@@ -12,6 +12,8 @@ import 'features/orders/orders_providers.dart';
 import 'features/finance/finance_providers.dart';
 import 'features/finance/supabase_finance_services.dart';
 import 'features/payments/payments_providers.dart';
+import 'features/members/members_providers.dart';
+import 'features/members/supabase_members_service.dart';
 import 'features/reports/report_providers.dart';
 import 'features/reports/supabase_report_service.dart';
 import 'features/payments/supabase_payments_service.dart';
@@ -61,6 +63,9 @@ Future<void> main() async {
           SupabaseTransfersService(client),
         ),
         reportServiceProvider.overrideWithValue(SupabaseReportService(client)),
+        membersServiceProvider.overrideWithValue(
+          SupabaseMembersService(client),
+        ),
       ],
       child: const JeJuApp(),
     ),

@@ -42,6 +42,13 @@ class MoreScreen extends ConsumerWidget {
             onTap: () => context.go('/app/more/reports'),
           ),
           ListTile(
+            key: const Key('more_members'),
+            leading: const Icon(Icons.people_outline),
+            title: const Text('Anggota & Undangan'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.go('/app/more/members'),
+          ),
+          ListTile(
             key: const Key('more_settings'),
             leading: const Icon(Icons.settings_outlined),
             title: const Text('Pengaturan'),

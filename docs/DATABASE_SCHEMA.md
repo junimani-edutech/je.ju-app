@@ -411,3 +411,31 @@ Return JSON:
 - Laba operasional **belum dihitung** (D-02 belum final).
 
 **Ekspor (client-side, Fase 6):** CSV + XLSX; PDF ditunda (D-05 revised).
+
+## RPC Fase 7 — Tim & Undangan
+
+### `list_business_members(p_business_id) returns table(user_id, email, full_name, avatar_url, role, status, joined_at, is_self)`
+
+- Validasi membership (semua role). Return error `NOT_A_MEMBER` jika bukan member aktif.
+- Termasuk member non-active (invited/suspended), diurutkan berdasarkan hierarki role lalu `created_at`.
+- `is_self` = `bm.user_id = auth.uid()`.
+
+### `create_invitation(p_business_id, p_email, p_role) returns table(invitation_id, token, expires_at)`
+
+- Validasi: caller adalah owner/admin; email non-empty; tidak boleh invite self; target email belum jadi member.
+- Owner boleh invite `admin`/`cashier`/`order_staff`/`viewer`. Admin hanya `cashier`/`order_staff`/`viewer`.
+- Idempotent: jika sudah ada pending invitation untuk email sama dan belum expired, return yang lama.
+- Token 64-char hex (`gen_random_uuid()` x2). Expiry 7 hari.
+
+### `revoke_invitation(p_invitation_id) returns void`
+
+- Validasi owner/admin.
+- Hanya boleh revoke yang `status=pending` (`INVITATION_NOT_PENDING` jika tidak).
+
+### `accept_invitation(p_token) returns uuid` (business_id)
+
+- Wajib login (JWT email).
+- Validasi email match dengan invitation (`EMAIL_MISMATCH`), status pending, belum expired.
+- Idempotent: kalau invitation `accepted` oleh user yang sama → return `business_id` tanpa error.
+- Insert `business_members` (status active) atau abaikan jika sudah member.
+- Set invitation `status=accepted`, `accepted_at`, `accepted_by`.

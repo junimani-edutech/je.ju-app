@@ -79,3 +79,11 @@ Codespaces Linux tidak menggantikan macOS/Xcode untuk signing/build iOS atau lin
 - **Jangan** `dispose()` `TextEditingController` yang dibuat di dalam method setelah dialog/sheet close. Dialog masih dalam animasi close ~150ms ketika method selesai, sehingga widget masih memakai controller di frame berikutnya → crash "A TextEditingController was used after being disposed".
 - Untuk dialog one-shot: biarkan controller sampai GC, atau gunakan `TextFormField` + capture variable lokal, atau buat dialog sebagai `StatefulWidget` terpisah dengan controller di `State`.
 - Controller yang merupakan field `State` (mis. `late final TextEditingController x`) **tetap** di-dispose di `State.dispose()`. Aman karena lifecycle-nya dikelola State.
+
+## Konvensi patch kode (pelajaran Langkah 14)
+
+- Sebelum patch Python `replace()` pada file yang pernah diformat `dart format`, tampilkan 5-8 baris sekitar blok target via `grep -n -A N` atau `sed -n`. Pattern harus presisi, bukan tebakan.
+- Heredoc (`cat > file <<EOF`) dengan isi >1.5 KB sering terpotong di terminal Codespaces. Untuk file baru yang panjang, gunakan `printf %sn ...` chunked (5-10 baris per chunk) dengan penutup bersih.
+- Kalau memindahkan provider yang punya banyak consumer, jangan buat file baru yang mengimport `core/providers.dart` (siklus). Cukup ubah definisi di tempat.
+- `gen_random_bytes` butuh pgcrypto di schema `extensions` — bukan search_path `public`. Pakai `gen_random_uuid()` x2 untuk token 256-bit.
+- Saat mendefinisikan `RETURNS TABLE`, kualifikasi kolom dalam SQL dengan alias tabel (`alias.kolom`) — kalau tidak, akan ambigu dengan OUT parameter.

@@ -352,3 +352,40 @@
 - Mobile file save native belum ada.
 - Web download via `dart:html` (deprecated).
 - Custom columns (req 5.8) ditunda.
+
+## 2026-11-02 — Fase 7: Tim & Undangan (Langkah 14)
+
+### Added
+- Migration `20261101070000_business_invitations_table.sql`: tabel `business_invitations` + RLS + policy + RPC `list_business_members`.
+- Migration `20261101070100_invitation_rpcs.sql`: RPC `create_invitation` + `revoke_invitation`.
+- Migration `20261101070200_accept_invitation_rpc.sql`: RPC `accept_invitation`.
+- pgTAP `invitations_rpc.sql` (18 test).
+- Models: `BusinessMemberInfo`, `Invitation`, `CreatedInvitation`.
+- `MembersService` + `SupabaseMembersService`.
+- `membersProvider`, `pendingInvitationsProvider`, `membersControllerProvider`.
+- `CurrentBusinessNotifier` (AsyncNotifier) untuk multi-business selection.
+- `BusinessSelectorButton` di Dashboard AppBar.
+- UI: `MembersScreen`, `InviteDialog`, `AcceptInviteScreen`, `MemberListTile`, `InvitationListTile`.
+- Route `/accept-invite` (public) + `/app/more/members` (shell) + entry di `MoreScreen`.
+- Widget tests: `members_test.dart` (5), `accept_invite_test.dart` (3).
+
+### Changed
+- `lib/core/providers.dart`: `currentBusinessProvider` dari `FutureProvider` ke `AsyncNotifierProvider` (`CurrentBusinessNotifier`).
+- `lib/router/app_router.dart`: redirect whitelist `/accept-invite` (public), bypass paksa onboarding untuk `/accept-invite`, tambah route `members`.
+- `lib/features/dashboard/dashboard_screen.dart`: AppBar leading `BusinessSelectorButton`.
+- `lib/features/more/more_screen.dart`: entry "Anggota & Undangan".
+- `lib/main.dart`: override `membersServiceProvider`.
+- `test/fake/fake_services.dart`: `FakeMembersService`.
+- `docs/DATABASE_SCHEMA.md`: RPC Fase 7.
+- `CURRENT_STATE.md`: Fase 7 selesai.
+
+### Fixed
+- Import cycle `currentBusinessProvider` (dipindah ke file terpisah + export) → digabung di `core/providers.dart`.
+- Ambiguitas kolom `token` di `create_invitation` (qualify `bi.token`).
+- Ambiguitas kolom `user_id`/`status` di `list_business_members` (qualify `bm.user_id`, `bm.status`).
+- `gen_random_bytes` (pgcrypto di schema `extensions`) → diganti `gen_random_uuid()` x2.
+
+### Tests
+- `flutter analyze` — No issues found.
+- `flutter test` — 55 tests passed.
+- `supabase test db` — Files=11, Tests=163, Result: PASS.

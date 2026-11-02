@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../shared/widgets/business_selector.dart';
 import '../finance/finance_models.dart';
 import '../finance/finance_providers.dart';
 
@@ -24,7 +25,15 @@ class DashboardScreen extends ConsumerWidget {
         const CashFlowSummary(income: 0, expense: 0, paymentsNet: 0, net: 0);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard'), centerTitle: false),
+      appBar: AppBar(
+        leadingWidth: 180,
+        leading: const Padding(
+          padding: EdgeInsets.only(left: 8),
+          child: Center(child: BusinessSelectorButton()),
+        ),
+        title: const Text('Dashboard'),
+        centerTitle: false,
+      ),
       body: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(accountBalancesProvider);
