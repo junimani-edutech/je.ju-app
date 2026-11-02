@@ -26,4 +26,8 @@ abstract class CustomersService {
 
   Future<void> archive(String id);
   Future<void> restore(String id);
+
+  /// Upsert by id. Dipakai dispatcher offline untuk push antrean
+  /// secara idempoten (insert-or-update by primary key).
+  Future<void> upsert(Customer customer);
 }

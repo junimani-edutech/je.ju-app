@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../shared/widgets/business_selector.dart';
+import '../offline/widgets/sync_queue_badge.dart';
 import '../finance/finance_models.dart';
 import '../finance/finance_providers.dart';
 
@@ -33,6 +34,7 @@ class DashboardScreen extends ConsumerWidget {
         ),
         title: const Text('Dashboard'),
         centerTitle: false,
+        actions: const [SyncQueueBadge(), SizedBox(width: 8)],
       ),
       body: RefreshIndicator(
         onRefresh: () async {

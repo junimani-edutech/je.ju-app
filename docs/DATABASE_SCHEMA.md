@@ -439,3 +439,39 @@ Return JSON:
 - Idempotent: kalau invitation `accepted` oleh user yang sama → return `business_id` tanpa error.
 - Insert `business_members` (status active) atau abaikan jika sudah member.
 - Set invitation `status=accepted`, `accepted_at`, `accepted_by`.
+
+## RPC Fase 8 — Offline Sync Upsert
+
+Empat RPC `upsert_*` menerima **ID dari klien** (idempotent by PK). Dipakai oleh dispatcher offline untuk push item antrean. Tidak menggantikan RPC online (`create_order`, `record_payment`, dll.) — jalur online tetap memakai RPC tersebut.
+
+### `upsert_order_with_items(p_id, p_business_id, p_order_number, p_customer_id, p_order_date, p_due_date, p_discount_amount, p_additional_fee_amount, p_shipping_amount, p_notes, p_order_status_id, p_items jsonb) returns uuid`
+
+- Klien menyuplai `id` + `order_number` (format `OFFLINE-XXXXXXXX` saat dibuat offline).
+- Mengganti `order_items` (delete-then-insert) secara atomik.
+- Tidak memakai advisory lock; idempotent via PK.
+- Recompute `paid_amount` + `payment_status` jika order sudah ada.
+
+### `upsert_payment(p_id, p_business_id, p_order_id, p_amount, p_payment_method_id, p_account_id, p_payment_date, p_reference, p_notes, p_idempotency_key) returns uuid`
+
+- Klien menyuplai `id` payment.
+- Menolak upsert payment yang sudah menjadi reversal atau sudah di-reverse.
+- Recompute `orders.paid_amount` + `payment_status`.
+
+### `upsert_transaction(p_id, p_business_id, p_type, p_amount, p_description, p_category_id, p_account_id, p_transaction_date, p_reference, p_idempotency_key) returns uuid`
+
+- Klien menyuplai `id`. Tipe `income`/`expense`.
+- Menolak upsert transaction yang merupakan reversal.
+
+### `upsert_transfer(p_id, p_business_id, p_from_account_id, p_to_account_id, p_amount, p_transfer_date, p_description, p_idempotency_key) returns uuid`
+
+- Klien menyuplai `id`. `from_account_id <> to_account_id`.
+- Menolak upsert transfer yang sudah bukan `status=confirmed`.
+
+## Offline & Sync (Klien)
+
+- Local SQLite via **Drift** (`lib/features/offline/db/app_database.dart`), mirror 10 tabel + `sync_queue`.
+- Wrapper transparan per domain (`Offline*Service`) — online → Supabase; offline → local + enqueue.
+- `SyncService` flush berkala (30 detik) + manual dari `/app/more/sync`.
+- `SyncQueueBadge` di AppBar Dashboard — tampil jika ada item pending.
+- Semua mutasi offline pakai `idempotency_key` (UUID klien) → aman dari duplikasi.
+- **Batas MVP Fase 8:** `changeStatus`, `cancel`, `voidPayment`, `voidTransaction`, `voidTransfer` **wajib online** (butuh audit + history server-side).

@@ -5,6 +5,7 @@ import 'package:jeju_app/core/models/app_user.dart';
 import 'package:jeju_app/core/models/business.dart';
 import 'package:jeju_app/core/models/business_member.dart';
 import 'package:jeju_app/core/providers.dart';
+import 'package:jeju_app/features/offline/providers.dart';
 import 'package:jeju_app/features/dashboard/dashboard_screen.dart';
 import 'package:jeju_app/features/finance/category.dart';
 import 'package:jeju_app/features/finance/finance_models.dart';
@@ -96,6 +97,7 @@ Widget _wrap({
       ),
       transactionsServiceProvider.overrideWithValue(txService),
       transfersServiceProvider.overrideWithValue(trService),
+      syncPendingCountProvider.overrideWith((ref) => const Stream<int>.empty()),
     ],
     child: MaterialApp(home: child),
   );

@@ -19,6 +19,20 @@ import 'features/reports/supabase_report_service.dart';
 import 'features/payments/supabase_payments_service.dart';
 import 'features/orders/supabase_orders_service.dart';
 import 'features/customers/supabase_customers_service.dart';
+import 'features/offline/customers_dispatcher.dart';
+import 'features/offline/local_customers_repo.dart';
+import 'features/offline/offline_customers_service.dart';
+import 'features/offline/offline_orders_service.dart';
+import 'features/offline/offline_transactions_service.dart';
+import 'features/offline/offline_transfers_service.dart';
+import 'features/offline/local_transactions_repo.dart';
+import 'features/offline/local_transfers_repo.dart';
+import 'features/offline/offline_payments_service.dart';
+import 'features/offline/local_orders_repo.dart';
+import 'features/offline/local_payments_repo.dart';
+import 'features/offline/sync_queue_repository.dart';
+import 'features/offline/sync_service.dart';
+import 'shared/widgets/sync_bootstrap.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,25 +63,56 @@ Future<void> main() async {
         businessServiceProvider.overrideWithValue(
           SupabaseBusinessService(client),
         ),
-        customersServiceProvider.overrideWithValue(
-          SupabaseCustomersService(client),
-        ),
-        ordersServiceProvider.overrideWithValue(SupabaseOrdersService(client)),
-        paymentsServiceProvider.overrideWithValue(
-          SupabasePaymentsService(client),
-        ),
-        transactionsServiceProvider.overrideWithValue(
-          SupabaseTransactionsService(client),
-        ),
-        transfersServiceProvider.overrideWithValue(
-          SupabaseTransfersService(client),
-        ),
+        customersServiceProvider.overrideWith((ref) {
+          return OfflineCustomersService(
+            remote: SupabaseCustomersService(client),
+            local: ref.watch(localCustomersRepoProvider),
+            queue: ref.watch(syncQueueRepositoryProvider),
+            ref: ref,
+          );
+        }),
+        ordersServiceProvider.overrideWith((ref) {
+          return OfflineOrdersService(
+            remote: SupabaseOrdersService(client),
+            local: ref.watch(localOrdersRepoProvider),
+            queue: ref.watch(syncQueueRepositoryProvider),
+            ref: ref,
+          );
+        }),
+        paymentsServiceProvider.overrideWith((ref) {
+          return OfflinePaymentsService(
+            remote: SupabasePaymentsService(client),
+            local: ref.watch(localPaymentsRepoProvider),
+            orders: ref.watch(localOrdersRepoProvider),
+            queue: ref.watch(syncQueueRepositoryProvider),
+            ref: ref,
+          );
+        }),
+        transactionsServiceProvider.overrideWith((ref) {
+          return OfflineTransactionsService(
+            remote: SupabaseTransactionsService(client),
+            local: ref.watch(localTransactionsRepoProvider),
+            queue: ref.watch(syncQueueRepositoryProvider),
+            ref: ref,
+          );
+        }),
+        transfersServiceProvider.overrideWith((ref) {
+          return OfflineTransfersService(
+            remote: SupabaseTransfersService(client),
+            local: ref.watch(localTransfersRepoProvider),
+            queue: ref.watch(syncQueueRepositoryProvider),
+            ref: ref,
+          );
+        }),
         reportServiceProvider.overrideWithValue(SupabaseReportService(client)),
         membersServiceProvider.overrideWithValue(
           SupabaseMembersService(client),
         ),
+        syncDispatcherProvider.overrideWithValue(
+          (item) => compositeDispatcher(item, client),
+        ),
       ],
-      child: const JeJuApp(),
+      child: const SyncBootstrap(child: JeJuApp()),
     ),
   );
 }

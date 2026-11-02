@@ -21,4 +21,7 @@ abstract class PaymentsService {
     required String paymentId,
     required String reason,
   });
+
+  /// Upsert by id — dipakai dispatcher offline. Idempotent: create-or-replace.
+  Future<void> upsert(Payment payment);
 }

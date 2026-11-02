@@ -125,6 +125,25 @@ class SupabaseTransactionsService implements TransactionsService {
     );
     return id as String;
   }
+
+  @override
+  Future<void> upsert(Transaction t) async {
+    await _client.rpc(
+      'upsert_transaction',
+      params: {
+        'p_id': t.id,
+        'p_business_id': t.businessId,
+        'p_type': t.type,
+        'p_amount': t.amount,
+        'p_description': t.description,
+        'p_category_id': t.categoryId,
+        'p_account_id': t.accountId,
+        'p_transaction_date': _dateStr(t.transactionDate),
+        'p_reference': t.reference,
+        'p_idempotency_key': null,
+      },
+    );
+  }
 }
 
 class SupabaseTransfersService implements TransfersService {
@@ -177,6 +196,23 @@ class SupabaseTransfersService implements TransfersService {
     await _client.rpc(
       'void_transfer',
       params: {'p_transfer_id': transferId, 'p_reason': reason},
+    );
+  }
+
+  @override
+  Future<void> upsert(Transfer tr) async {
+    await _client.rpc(
+      'upsert_transfer',
+      params: {
+        'p_id': tr.id,
+        'p_business_id': tr.businessId,
+        'p_from_account_id': tr.fromAccountId,
+        'p_to_account_id': tr.toAccountId,
+        'p_amount': tr.amount,
+        'p_transfer_date': _dateStr(tr.transferDate),
+        'p_description': tr.description,
+        'p_idempotency_key': null,
+      },
     );
   }
 }

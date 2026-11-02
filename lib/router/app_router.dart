@@ -11,6 +11,7 @@ import '../features/finance/transactions_screen.dart';
 import '../features/finance/transfers_screen.dart';
 import '../features/members/accept_invite_screen.dart';
 import '../features/members/members_screen.dart';
+import '../features/offline/sync_status_screen.dart';
 import '../features/more/more_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/orders/orders_screen.dart';
@@ -96,6 +97,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   GoRoute(
                     path: 'members',
                     builder: (_, _) => const MembersScreen(),
+                  ),
+                  GoRoute(
+                    path: 'sync',
+                    builder: (_, _) => const SyncStatusScreen(),
                   ),
                   GoRoute(
                     path: 'settings',

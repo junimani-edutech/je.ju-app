@@ -389,3 +389,44 @@
 - `flutter analyze` — No issues found.
 - `flutter test` — 55 tests passed.
 - `supabase test db` — Files=11, Tests=163, Result: PASS.
+
+## 2026-11-02 — Fase 8: Offline & Sync (Langkah 15)
+
+### Added
+- Dependencies: `drift`, `drift_flutter`, `sqlite3_flutter_libs`, `connectivity_plus`, `path_provider`, `uuid`, `path`; dev: `drift_dev`, `build_runner`.
+- Skema lokal Drift (`lib/features/offline/db/app_database.dart`): 10 tabel mirror + `sync_queue`.
+- Migration 0800: RPC `upsert_order_with_items`.
+- Migration 0801: RPC `upsert_payment`.
+- Migration 0802: RPC `upsert_transaction` + `upsert_transfer`.
+- pgTAP: `upsert_rpcs.sql` (15), `upsert_transfer_txn_rpcs.sql` (11).
+- `SyncQueueRepository` + `SyncService` (flush berkala + backoff + retry).
+- `networkStatusProvider`, `syncPendingCountProvider`, `syncServiceProvider`, `syncDispatcherProvider`.
+- `Local*Repo` untuk customers, orders, payments, transactions, transfers.
+- Dispatchers (`*Dispatcher`) + `compositeDispatcher`.
+- Wrapper transparan: `OfflineCustomersService`, `OfflineOrdersService`, `OfflinePaymentsService`, `OfflineTransactionsService`, `OfflineTransfersService`.
+- UI: `SyncQueueBadge` (AppBar Dashboard), `SyncStatusScreen` (`/app/more/sync`).
+- Bootstrap `SyncBootstrap` (`lib/shared/widgets/sync_bootstrap.dart`).
+- Unit test lokal: `sync_queue_test.dart` (5), `local_orders_payments_test.dart` (4), `local_finance_repos_test.dart` (4).
+
+### Changed
+- `main.dart`: override customers/orders/payments/transactions/transfers service dengan wrapper Offline; wire `syncDispatcherProvider`; bungkus `JeJuApp` dengan `SyncBootstrap`.
+- `OrdersService`, `PaymentsService`, `TransactionsService`, `TransfersService` — tambah method `upsert`.
+- `Supabase{Orders,Payments,Transactions,Transfers}Service` + Fake — implement `upsert`.
+- `DashboardScreen` AppBar actions: `SyncQueueBadge`.
+- `MoreScreen`: entry "Status Sinkronisasi".
+- `app_router.dart`: route `/app/more/sync`.
+- Test files (finance, onboarding, navigation): override `syncPendingCountProvider` (hindari pending timer dari Drift stream).
+- `docs/DATABASE_SCHEMA.md`: RPC upsert + offline client section.
+- `CURRENT_STATE.md`: Fase 8 selesai.
+- `AGENTS.md`: konvensi patch + pelajaran.
+
+### Tests
+- `flutter analyze` — No issues found.
+- `flutter test` — 68 tests passed.
+- `supabase test db` — Files=13, Tests=189, Result: PASS.
+
+### Known limitations
+- Enkripsi lokal belum (F8-02-A).
+- Void/status change/undo wajib online.
+- Multi-business selection belum persisten.
+- Custom columns (5.8) ditunda.

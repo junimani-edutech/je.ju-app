@@ -49,6 +49,13 @@ class MoreScreen extends ConsumerWidget {
             onTap: () => context.go('/app/more/members'),
           ),
           ListTile(
+            key: const Key('more_sync'),
+            leading: const Icon(Icons.cloud_upload_outlined),
+            title: const Text('Status Sinkronisasi'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.go('/app/more/sync'),
+          ),
+          ListTile(
             key: const Key('more_settings'),
             leading: const Icon(Icons.settings_outlined),
             title: const Text('Pengaturan'),

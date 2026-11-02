@@ -254,6 +254,16 @@ class FakeCustomersService implements CustomersService {
     _store[idx] = _withStatus(_store[idx], 'active');
   }
 
+  @override
+  Future<void> upsert(Customer c) async {
+    final idx = _store.indexWhere((x) => x.id == c.id);
+    if (idx >= 0) {
+      _store[idx] = c;
+    } else {
+      _store.add(c);
+    }
+  }
+
   Customer _withStatus(Customer c, String status) => Customer(
     id: c.id,
     businessId: c.businessId,
@@ -387,6 +397,19 @@ class FakeOrdersService implements OrdersService {
       updatedAt: DateTime.now(),
     );
   }
+
+  int upsertOrderCallCount = 0;
+
+  @override
+  Future<void> upsert(Order order, List<OrderItem> items) async {
+    upsertOrderCallCount++;
+    final idx = _orders.indexWhere((o) => o.id == order.id);
+    if (idx >= 0) {
+      _orders[idx] = order;
+    } else {
+      _orders.add(order);
+    }
+  }
 }
 
 class FakePaymentsService implements PaymentsService {
@@ -497,6 +520,19 @@ class FakePaymentsService implements PaymentsService {
       ),
     );
     return reversalId;
+  }
+
+  int upsertPaymentCallCount = 0;
+
+  @override
+  Future<void> upsert(Payment p) async {
+    upsertPaymentCallCount++;
+    final idx = _payments.indexWhere((x) => x.id == p.id);
+    if (idx >= 0) {
+      _payments[idx] = p;
+    } else {
+      _payments.add(p);
+    }
   }
 }
 
@@ -625,6 +661,16 @@ class FakeTransactionsService implements TransactionsService {
     );
     return id;
   }
+
+  @override
+  Future<void> upsert(Transaction t) async {
+    final idx = _txs.indexWhere((x) => x.id == t.id);
+    if (idx >= 0) {
+      _txs[idx] = t;
+    } else {
+      _txs.add(t);
+    }
+  }
 }
 
 class FakeTransfersService implements TransfersService {
@@ -697,6 +743,16 @@ class FakeTransfersService implements TransfersService {
       cancelledAt: DateTime.now(),
       cancelReason: reason,
     );
+  }
+
+  @override
+  Future<void> upsert(Transfer tr) async {
+    final idx = _trs.indexWhere((x) => x.id == tr.id);
+    if (idx >= 0) {
+      _trs[idx] = tr;
+    } else {
+      _trs.add(tr);
+    }
   }
 }
 

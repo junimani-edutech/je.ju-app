@@ -112,4 +112,34 @@ class SupabaseOrdersService implements OrdersService {
       params: {'p_order_id': orderId, 'p_reason': reason},
     );
   }
+
+  @override
+  Future<void> upsert(Order order, List<OrderItem> items) async {
+    await _client.rpc(
+      'upsert_order_with_items',
+      params: {
+        'p_id': order.id,
+        'p_business_id': order.businessId,
+        'p_order_number': order.orderNumber,
+        'p_customer_id': order.customerId,
+        'p_order_date': _dateStr(order.orderDate),
+        'p_due_date': _dateStr(order.dueDate),
+        'p_discount_amount': order.discountAmount,
+        'p_additional_fee_amount': order.additionalFeeAmount,
+        'p_shipping_amount': order.shippingAmount,
+        'p_notes': order.notes,
+        'p_order_status_id': order.orderStatusId,
+        'p_items': items
+            .map(
+              (it) => {
+                'description': it.description,
+                'quantity': it.quantity,
+                'unit_price': it.unitPrice,
+                'discount_amount': it.discountAmount,
+              },
+            )
+            .toList(),
+      },
+    );
+  }
 }

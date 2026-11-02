@@ -87,3 +87,13 @@ Codespaces Linux tidak menggantikan macOS/Xcode untuk signing/build iOS atau lin
 - Kalau memindahkan provider yang punya banyak consumer, jangan buat file baru yang mengimport `core/providers.dart` (siklus). Cukup ubah definisi di tempat.
 - `gen_random_bytes` butuh pgcrypto di schema `extensions` — bukan search_path `public`. Pakai `gen_random_uuid()` x2 untuk token 256-bit.
 - Saat mendefinisikan `RETURNS TABLE`, kualifikasi kolom dalam SQL dengan alias tabel (`alias.kolom`) — kalau tidak, akan ambigu dengan OUT parameter.
+
+## Konvensi offline (Fase 8)
+
+- Semua mutasi offline wajib pakai `idempotency_key` (UUID v4 klien). Jangan generate ulang saat retry.
+- ID entitas dibuat **klien-side** (UUID v4) saat offline; server hanya menyimpan. Pakai RPC `upsert_*`, bukan `create_*`/`record_*`.
+- **Online-only operations:** `change_order_status`, `cancel_order`, `void_payment`, `void_transaction`, `void_transfer`, dan semua auth/undangan. UI wajib tampilkan error informatif kalau offline.
+- Local repo query **selalu** filter `business_id` dari `currentBusinessProvider` — hindari leak data antar tenant.
+- `sync_queue` di-flush berkala oleh `SyncService` saat online. Item gagal di-retry otomatis hingga `maxRetries=3`, setelah itu `failed` (manual retry dari `/app/more/sync`).
+- Test yang render `JeJuApp` atau `DashboardScreen` **wajib** override `syncPendingCountProvider` dengan `Stream.empty()` agar tidak ada pending timer dari Drift stream.
+- Composite dispatcher (`compositeDispatcher`) adalah satu-satunya entrypoint flush; tambah `case` baru untuk entityType baru.

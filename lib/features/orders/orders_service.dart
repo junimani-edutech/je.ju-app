@@ -25,4 +25,7 @@ abstract class OrdersService {
   });
 
   Future<void> cancel(String orderId, {String? reason});
+
+  /// Upsert by id — dipakai dispatcher offline. Idempotent: create-or-replace.
+  Future<void> upsert(Order order, List<OrderItem> items);
 }

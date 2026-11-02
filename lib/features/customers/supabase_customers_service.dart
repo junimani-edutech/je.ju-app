@@ -79,4 +79,20 @@ class SupabaseCustomersService implements CustomersService {
   Future<void> restore(String id) async {
     await _client.from('customers').update({'status': 'active'}).eq('id', id);
   }
+
+  @override
+  Future<void> upsert(Customer c) async {
+    await _client.from('customers').upsert({
+      'id': c.id,
+      'business_id': c.businessId,
+      'name': c.name,
+      'phone': c.phone,
+      'email': c.email,
+      'address': c.address,
+      'notes': c.notes,
+      'status': c.status,
+      'created_at': c.createdAt.toIso8601String(),
+      'updated_at': c.updatedAt.toIso8601String(),
+    }, onConflict: 'id');
+  }
 }

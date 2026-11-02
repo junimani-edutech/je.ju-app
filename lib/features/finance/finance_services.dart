@@ -32,6 +32,9 @@ abstract class TransactionsService {
     required String transactionId,
     required String reason,
   });
+
+  /// Upsert by id — dipakai dispatcher offline. Idempotent: create-or-replace.
+  Future<void> upsert(Transaction transaction);
 }
 
 abstract class TransfersService {
@@ -51,4 +54,7 @@ abstract class TransfersService {
     required String transferId,
     required String reason,
   });
+
+  /// Upsert by id — dipakai dispatcher offline. Idempotent: create-or-replace.
+  Future<void> upsert(Transfer transfer);
 }

@@ -91,4 +91,22 @@ class SupabasePaymentsService implements PaymentsService {
     );
     return result as String;
   }
+
+  @override
+  Future<void> upsert(Payment p) async {
+    await _client.rpc(
+      'upsert_payment',
+      params: {
+        'p_id': p.id,
+        'p_business_id': p.businessId,
+        'p_order_id': p.orderId,
+        'p_amount': p.amount,
+        'p_payment_method_id': p.paymentMethodId,
+        'p_account_id': p.accountId,
+        'p_payment_date': _dateStr(p.paymentDate),
+        'p_reference': p.reference,
+        'p_notes': p.notes,
+      },
+    );
+  }
 }

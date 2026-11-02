@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:jeju_app/app.dart';
 import 'package:jeju_app/core/models/app_user.dart';
 import 'package:jeju_app/core/providers.dart';
+import 'package:jeju_app/features/offline/providers.dart';
 
 import 'package:jeju_app/features/finance/finance_providers.dart';
 
@@ -16,6 +17,7 @@ Widget _app({required FakeAuthService auth, required FakeBusinessService biz}) {
       businessServiceProvider.overrideWithValue(biz),
       transactionsServiceProvider.overrideWithValue(FakeTransactionsService()),
       transfersServiceProvider.overrideWithValue(FakeTransfersService()),
+      syncPendingCountProvider.overrideWith((ref) => const Stream<int>.empty()),
     ],
     child: const JeJuApp(),
   );
