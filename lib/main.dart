@@ -39,12 +39,21 @@ Future<void> main() async {
 
   String? url;
   String? anon;
-  try {
-    await dotenv.load(fileName: '.env');
-    url = dotenv.env['SUPABASE_URL'];
-    anon = dotenv.env['SUPABASE_ANON_KEY'];
-  } catch (_) {
-    // .env tidak wajib untuk build; UI akan menampilkan pesan.
+
+  // 1. Coba baca dari --dart-define (untuk production Vercel)
+  const envUrl = String.fromEnvironment('SUPABASE_URL');
+  const envAnon = String.fromEnvironment('SUPABASE_ANON_KEY');
+
+  if (envUrl.isNotEmpty && envAnon.isNotEmpty) {
+    url = envUrl;
+    anon = envAnon;
+  } else {
+    // 2. Fallback ke .env (untuk development lokal)
+    try {
+      await dotenv.load(fileName: '.env');
+      url = dotenv.env['SUPABASE_URL'];
+      anon = dotenv.env['SUPABASE_ANON_KEY'];
+    } catch (_) {}
   }
 
   if (url == null || url.isEmpty || anon == null || anon.isEmpty) {
