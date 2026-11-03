@@ -8,6 +8,7 @@ import 'orders_dispatcher.dart';
 import 'transactions_dispatcher.dart';
 import 'transfers_dispatcher.dart';
 import 'payments_dispatcher.dart';
+import 'products_dispatcher.dart';
 import 'sync_queue_repository.dart';
 
 /// Push satu item antrean `customers` ke Supabase.
@@ -35,6 +36,8 @@ Future<void> compositeDispatcher(
       return ordersDispatcher(item, client);
     case 'payments':
       return paymentsDispatcher(item, client);
+    case 'products':
+      return productsDispatcher(item, client);
     case 'transactions':
       return transactionsDispatcher(item, client);
     case 'transfers':

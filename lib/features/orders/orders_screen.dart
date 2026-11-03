@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../shared/widgets/app_states.dart';
 import 'order.dart';
 import 'orders_providers.dart';
 import 'widgets/order_detail_sheet.dart';
@@ -53,11 +54,9 @@ class OrdersScreen extends ConsumerWidget {
         ),
         body: ordersAsync.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text('Gagal memuat: $e'),
-            ),
+          error: (e, _) => ErrorState(
+            message: 'Gagal memuat pesanan. Periksa koneksi Anda.',
+            onRetry: () => ref.invalidate(ordersProvider),
           ),
           data: (list) {
             return TabBarView(

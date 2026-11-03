@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 
-import 'app_database_io.dart' if (dart.library.html) 'app_database_stub.dart';
+import 'app_database_stub.dart' if (dart.library.io) 'app_database_io.dart';
 
 part 'app_database.g.dart';
 
@@ -200,6 +200,21 @@ class OrderStatusesTable extends Table {
 
 /// Antrean mutasi offline. Satu baris = satu operasi tulis yang harus
 /// dipush ke server. Idempotency key mencegah duplikasi saat flush ganda.
+class ProductsTable extends Table {
+  TextColumn get id => text()();
+  TextColumn get businessId => text()();
+  TextColumn get name => text()();
+  IntColumn get price => integer()();
+  TextColumn get description => text().nullable()();
+  TextColumn get status => text().withDefault(const Constant('active'))();
+  TextColumn get createdBy => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}
+
 class SyncQueueTable extends Table {
   TextColumn get id => text()();
   TextColumn get businessId => text()();
@@ -231,6 +246,7 @@ class SyncQueueTable extends Table {
     AccountsTable,
     CategoriesTable,
     PaymentMethodsTable,
+    ProductsTable,
     OrderStatusesTable,
     SyncQueueTable,
   ],

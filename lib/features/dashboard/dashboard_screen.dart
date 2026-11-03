@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
 import '../../shared/widgets/business_selector.dart';
+import '../../core/theme/theme_mode_provider.dart';
+import 'widgets/cash_flow_chart.dart';
+import '../../shared/widgets/offline_banner.dart';
 import '../offline/widgets/sync_queue_badge.dart';
 import '../finance/finance_models.dart';
 import '../finance/finance_providers.dart';
@@ -34,7 +37,28 @@ class DashboardScreen extends ConsumerWidget {
         ),
         title: const Text('Dashboard'),
         centerTitle: false,
-        actions: const [SyncQueueBadge(), SizedBox(width: 8)],
+        actions: [
+          SyncQueueBadge(),
+          IconButton(
+            tooltip: 'Ganti Tema',
+            icon: Icon(
+              Theme.of(context).brightness == Brightness.dark
+                  ? Icons.light_mode
+                  : Icons.dark_mode,
+            ),
+            onPressed: () {
+              final currentMode = ref.read(themeModeProvider);
+              ref
+                  .read(themeModeProvider.notifier)
+                  .set(
+                    currentMode == ThemeMode.dark
+                        ? ThemeMode.light
+                        : ThemeMode.dark,
+                  );
+            },
+          ),
+          SizedBox(width: 8),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -44,6 +68,7 @@ class DashboardScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            const OfflineBanner(),
             if (user != null)
               Card(
                 child: ListTile(
@@ -112,6 +137,8 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 24),
+            const CashFlowChart(),
             const SizedBox(height: 24),
             Text('Saldo akun', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),

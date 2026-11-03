@@ -5,6 +5,7 @@ import '../../../core/providers.dart';
 import '../../payments/widgets/payments_section.dart';
 import '../order.dart';
 import '../orders_providers.dart';
+import '../invoice_service.dart';
 
 class OrderDetailSheet extends ConsumerStatefulWidget {
   const OrderDetailSheet({super.key, required this.order});
@@ -282,6 +283,16 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
               Text('Catatan: ${liveOrder.notes}'),
             ],
             const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () async {
+                final items = await _itemsFuture;
+                if (!context.mounted) return;
+                await InvoiceService.printInvoice(liveOrder, items, 'JeJu');
+              },
+              icon: const Icon(Icons.print),
+              label: const Text('Cetak Invoice'),
+            ),
+            const SizedBox(height: 8),
             if (canWrite && !liveOrder.isCancelled) ...[
               FilledButton.icon(
                 key: const Key('order_detail_change_status'),

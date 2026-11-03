@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +19,10 @@ import 'features/reports/report_providers.dart';
 import 'features/reports/supabase_report_service.dart';
 import 'features/payments/supabase_payments_service.dart';
 import 'features/orders/supabase_orders_service.dart';
+import 'features/products/products_providers.dart';
+import 'features/products/supabase_products_service.dart';
+import 'features/offline/local_products_repo.dart';
+import 'features/offline/offline_products_service.dart';
 import 'features/customers/supabase_customers_service.dart';
 import 'features/offline/customers_dispatcher.dart';
 import 'features/offline/local_customers_repo.dart';
@@ -73,6 +78,7 @@ Future<void> main() async {
           SupabaseBusinessService(client),
         ),
         customersServiceProvider.overrideWith((ref) {
+          if (kIsWeb) return SupabaseCustomersService(client);
           return OfflineCustomersService(
             remote: SupabaseCustomersService(client),
             local: ref.watch(localCustomersRepoProvider),
@@ -80,7 +86,17 @@ Future<void> main() async {
             ref: ref,
           );
         }),
+        productsServiceProvider.overrideWith((ref) {
+          if (kIsWeb) return SupabaseProductsService(client);
+          return OfflineProductsService(
+            remote: SupabaseProductsService(client),
+            local: ref.watch(localProductsRepoProvider),
+            queue: ref.watch(syncQueueRepositoryProvider),
+            ref: ref,
+          );
+        }),
         ordersServiceProvider.overrideWith((ref) {
+          if (kIsWeb) return SupabaseOrdersService(client);
           return OfflineOrdersService(
             remote: SupabaseOrdersService(client),
             local: ref.watch(localOrdersRepoProvider),
@@ -89,6 +105,7 @@ Future<void> main() async {
           );
         }),
         paymentsServiceProvider.overrideWith((ref) {
+          if (kIsWeb) return SupabasePaymentsService(client);
           return OfflinePaymentsService(
             remote: SupabasePaymentsService(client),
             local: ref.watch(localPaymentsRepoProvider),
@@ -98,6 +115,7 @@ Future<void> main() async {
           );
         }),
         transactionsServiceProvider.overrideWith((ref) {
+          if (kIsWeb) return SupabaseTransactionsService(client);
           return OfflineTransactionsService(
             remote: SupabaseTransactionsService(client),
             local: ref.watch(localTransactionsRepoProvider),
@@ -106,6 +124,7 @@ Future<void> main() async {
           );
         }),
         transfersServiceProvider.overrideWith((ref) {
+          if (kIsWeb) return SupabaseTransfersService(client);
           return OfflineTransfersService(
             remote: SupabaseTransfersService(client),
             local: ref.watch(localTransfersRepoProvider),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../shared/widgets/skeleton_loader.dart';
 import 'customer.dart';
 import 'customers_providers.dart';
 import 'widgets/customer_form_sheet.dart';
@@ -153,7 +154,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
     required bool canWrite,
   }) {
     return async.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const SkeletonList(),
       error: (e, _) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
