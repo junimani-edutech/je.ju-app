@@ -1,5 +1,5 @@
 {
-  "buildCommand": "flutter/bin/flutter pub run build_runner build --delete-conflicting-outputs && flutter/bin/flutter build web --release --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY",
+  "buildCommand": "echo \"SUPABASE_URL=$SUPABASE_URL\" > .env && echo \"SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY\" >> .env && echo '=== ISI FILE .ENV ===' && cat .env && echo '=====================' && flutter/bin/flutter pub run build_runner build --delete-conflicting-outputs && flutter/bin/flutter build web --release",
   "outputDirectory": "build/web",
   "installCommand": "if cd flutter; then git pull && cd .. ; else git clone -b stable https://github.com/flutter/flutter.git; fi && flutter/bin/flutter doctor && flutter/bin/flutter clean && flutter/bin/flutter config --enable-web",
   "rewrites": [
