@@ -21,6 +21,18 @@ class LocalPaymentsRepo {
     return rows.map(_toPayment).toList();
   }
 
+  Future<List<Payment>> listAll({required String businessId}) async {
+    final rows =
+        await (_db.select(_db.paymentsTable)
+              ..where((t) => t.businessId.equals(businessId))
+              ..orderBy([
+                (t) => OrderingTerm.desc(t.paymentDate),
+                (t) => OrderingTerm.desc(t.createdAt),
+              ]))
+            .get();
+    return rows.map(_toPayment).toList();
+  }
+
   Future<Payment?> byId(String id) async {
     final row =
         await (_db.select(_db.paymentsTable)
@@ -68,7 +80,7 @@ class LocalPaymentsRepo {
     cancelReason: Value(p.cancelReason),
     reversalOfPaymentId: Value(p.reversalOfPaymentId),
     createdAt: Value(p.createdAt),
-    updatedAt: Value(p.createdAt), // dibuat = diupdate saat insert
+    updatedAt: Value(p.createdAt),
   );
 
   Payment _toPayment(PaymentsTableData row) => Payment(

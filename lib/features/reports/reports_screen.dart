@@ -20,9 +20,14 @@ class ReportsScreen extends ConsumerStatefulWidget {
 }
 
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
-  int _rangeIndex = 0; // 0 = bulan ini, 1 = bulan lalu
+  int _rangeIndex = 0;
+  DateTime? _customFrom;
+  DateTime? _customTo; // 0 = bulan ini, 1 = bulan lalu
 
   ({DateTime from, DateTime to}) _currentRange() {
+    if (_rangeIndex == 2 && _customFrom != null && _customTo != null) {
+      return (from: _customFrom!, to: _customTo!);
+    }
     final now = DateTime.now();
     if (_rangeIndex == 0) {
       return (
@@ -33,6 +38,23 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final lastMonthStart = DateTime(now.year, now.month - 1, 1);
     final lastMonthEnd = DateTime(now.year, now.month, 0);
     return (from: lastMonthStart, to: lastMonthEnd);
+  }
+
+  Future<void> _pickCustomRange() async {
+    final r = _currentRange();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+      initialDateRange: DateTimeRange(start: r.from, end: r.to),
+    );
+    if (picked != null) {
+      setState(() {
+        _customFrom = picked.start;
+        _customTo = picked.end;
+        _rangeIndex = 2;
+      });
+    }
   }
 
   String _rangeLabel() {
@@ -125,8 +147,14 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                       ButtonSegment(value: 1, label: Text('Bulan lalu')),
                     ],
                     selected: {_rangeIndex},
-                    onSelectionChanged: (s) =>
-                        setState(() => _rangeIndex = s.first),
+                    onSelectionChanged: (s) {
+                      final v = s.first;
+                      if (v == 2) {
+                        _pickCustomRange();
+                      } else {
+                        setState(() => _rangeIndex = v);
+                      }
+                    },
                   ),
                 ),
               ],

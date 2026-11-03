@@ -110,6 +110,7 @@ class LocalOrdersRepo {
         unitPrice: Value(it.unitPrice),
         discountAmount: Value(it.discountAmount),
         lineTotal: Value(it.lineTotal),
+        productId: Value(it.productId),
         createdAt: Value(DateTime.now().toUtc()),
       );
 

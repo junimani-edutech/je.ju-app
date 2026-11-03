@@ -430,3 +430,33 @@
 - Void/status change/undo wajib online.
 - Multi-business selection belum persisten.
 - Custom columns (5.8) ditunda.
+
+## 2026-11-04 — Fase 12: Product Master, Payments, Search & UX Polish (v1.0.0)
+
+### Added
+- Migration 1100: `order_items.product_id` + `create_order`/`upsert_order_with_items` terima `product_id` per item (cross-business ditolak).
+- Fitur Master Produk: tabel `products`, RPC `upsert_product`, model + service (Supabase + Offline), Drift `ProductsTable`, `ProductsScreen` (tab Aktif/Arsip), `ProductFormSheet`, `ProductPicker` bottom sheet.
+- Integrasi Product Picker ke `OrderFormSheet` (ikon inventori → auto-fill nama + harga).
+- `PaymentsScreen` real: list semua payment lintas order, tab Semua/Terkonfirmasi/Dibatalkan, void dialog.
+- Date range picker di `ReportsScreen` (tab Kustom + tombol Pilih Rentang).
+- Tab Aktif/Arsip di `ProductsScreen` + `archivedProductsProvider`.
+- Search di `OrdersScreen` + `TransactionsScreen` (client-side).
+- `formatError` + `showErrorSnack` di `ui_helpers.dart` untuk pesan offline yang ramah.
+
+### Changed
+- Drift schemaVersion 1 → 2 dengan migrasi `addColumn(orderItemsTable.productId)`.
+- `OrderItem.productId` + `OrderItemInput.productId`.
+- `LocalOrdersRepo`, `OfflineOrdersService`, `OrderFormSheet` pass `productId`.
+- `orders_screen.dart` + `transactions_screen.dart` rewrite dengan search bar + state lengkap (ErrorState/EmptyState/SkeletonList).
+- `payments_providers.dart`: `AllPaymentsNotifier` + `allPaymentsProvider`.
+
+### Tests
+- `flutter analyze` — No issues found.
+- `flutter test` — 71 tests passed.
+- `supabase test db` — Files=14, Tests=195, Result: PASS.
+
+### Known limitations
+- Search client-side (pagination di Fase 13).
+- Void/cancel/changeStatus online-only (dengan UX offline yang jelas).
+- Dashboard "Produk Terlaris" belum (data `product_id` sudah siap).
+- Push notification & WhatsApp reminder belum.

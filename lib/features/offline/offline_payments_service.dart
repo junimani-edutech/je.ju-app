@@ -72,6 +72,16 @@ class OfflinePaymentsService implements PaymentsService {
   }
 
   @override
+  Future<List<Payment>> listAll({required String businessId}) async {
+    if (_isOnline()) {
+      try {
+        await _local.upsertMany(await _remote.listAll(businessId: businessId));
+      } catch (_) {}
+    }
+    return _local.listAll(businessId: businessId);
+  }
+
+  @override
   Future<List<PaymentMethod>> listMethods(String businessId) async {
     if (_isOnline()) {
       try {

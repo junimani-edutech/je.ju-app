@@ -81,3 +81,9 @@ final activeProductsProvider = Provider<AsyncValue<List<Product>>>((ref) {
       .watch(productsProvider)
       .whenData((list) => list.where((p) => p.isActive).toList());
 });
+
+final archivedProductsProvider = Provider<AsyncValue<List<Product>>>((ref) {
+  return ref
+      .watch(productsProvider)
+      .whenData((list) => list.where((p) => !p.isActive).toList());
+});

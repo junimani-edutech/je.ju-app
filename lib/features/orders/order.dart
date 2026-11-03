@@ -79,6 +79,7 @@ class OrderItem {
     required this.unitPrice,
     required this.discountAmount,
     required this.lineTotal,
+    this.productId,
   });
 
   final String id;
@@ -90,6 +91,7 @@ class OrderItem {
   final int unitPrice;
   final int discountAmount;
   final int lineTotal;
+  final String? productId;
 
   factory OrderItem.fromMap(Map<String, dynamic> m) => OrderItem(
     id: m['id'] as String,

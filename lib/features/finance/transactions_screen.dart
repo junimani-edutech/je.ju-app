@@ -2,17 +2,45 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/providers.dart';
+import '../../shared/widgets/app_states.dart';
+import '../../shared/widgets/skeleton_loader.dart';
 import 'category.dart';
 import 'finance_providers.dart';
 import 'transaction.dart';
 import 'widgets/transaction_form_sheet.dart';
 import 'widgets/transaction_list_tile.dart';
 
-class TransactionsScreen extends ConsumerWidget {
+class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
+
+  @override
+  ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
+}
+
+class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
 
   static const _tabs = <String?>[null, 'income', 'expense'];
   static const _tabLabels = <String>['Semua', 'Masuk', 'Keluar'];
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  List<Transaction> _applyQuery(List<Transaction> list) {
+    if (_query.isEmpty) return list;
+    final q = _query.toLowerCase();
+    return list.where((t) {
+      if (t.description.toLowerCase().contains(q)) return true;
+      if (t.reference != null && t.reference!.toLowerCase().contains(q)) {
+        return true;
+      }
+      return false;
+    }).toList();
+  }
 
   Future<void> _void(
     BuildContext context,
@@ -77,7 +105,7 @@ class TransactionsScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final canWrite = ref.watch(currentMemberProvider).value?.canWrite ?? false;
     final transactionsAsync = ref.watch(transactionsProvider);
     final categories =
@@ -100,22 +128,59 @@ class TransactionsScreen extends ConsumerWidget {
             ],
           ),
         ),
-        body: transactionsAsync.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text('Gagal memuat: $e'),
+        body: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+              child: TextField(
+                key: const Key('tx_search'),
+                controller: _searchCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Cari deskripsi atau referensi',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  isDense: true,
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          key: const Key('tx_search_clear'),
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            setState(() => _query = '');
+                          },
+                        ),
+                ),
+                onChanged: (v) => setState(() => _query = v.trim()),
+              ),
             ),
-          ),
-          data: (list) {
-            return TabBarView(
-              children: [
-                for (final filter in _tabs)
-                  _buildList(context, ref, list, filter, catMap, canWrite),
-              ],
-            );
-          },
+            Expanded(
+              child: transactionsAsync.when(
+                loading: () => const SkeletonList(),
+                error: (e, _) => ErrorState(
+                  message: 'Gagal memuat transaksi. Periksa koneksi Anda.',
+                  onRetry: () => ref.invalidate(transactionsProvider),
+                ),
+                data: (list) {
+                  return TabBarView(
+                    children: [
+                      for (final filter in _tabs)
+                        _buildList(
+                          context,
+                          ref,
+                          list,
+                          filter,
+                          catMap,
+                          canWrite,
+                        ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
         ),
         floatingActionButton: canWrite
             ? FloatingActionButton.extended(
@@ -140,39 +205,33 @@ class TransactionsScreen extends ConsumerWidget {
     final filtered = filter == null
         ? all
         : all.where((t) => t.type == filter).toList();
+    final searched = _applyQuery(filtered);
 
-    if (filtered.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.receipt_long_outlined,
-                size: 56,
-                color: Theme.of(context).colorScheme.outline,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                filter == null
-                    ? 'Belum ada transaksi'
-                    : 'Tidak ada transaksi di tab ini',
-                style: Theme.of(context).textTheme.titleMedium,
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+    if (searched.isEmpty) {
+      if (_query.isNotEmpty) {
+        return const EmptyState(
+          icon: Icons.search_off,
+          title: 'Tidak ada hasil',
+          subtitle: 'Tidak ada transaksi yang cocok dengan pencarian Anda.',
+        );
+      }
+      final label = filter == null
+          ? 'Belum ada transaksi'
+          : 'Tidak ada transaksi di tab ini';
+      return EmptyState(
+        icon: Icons.receipt_long_outlined,
+        title: label,
+        subtitle:
+            'Transaksi baru akan muncul di sini setelah Anda mencatatnya.',
       );
     }
 
     return ListView.separated(
       padding: const EdgeInsets.fromLTRB(8, 8, 8, 88),
-      itemCount: filtered.length,
+      itemCount: searched.length,
       separatorBuilder: (_, _) => const SizedBox(height: 4),
       itemBuilder: (_, i) {
-        final tx = filtered[i];
+        final tx = searched[i];
         return TransactionListTile(
           tx: tx,
           categoryName: tx.categoryId != null ? catMap[tx.categoryId] : null,

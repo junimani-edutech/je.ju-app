@@ -437,6 +437,11 @@ class FakePaymentsService implements PaymentsService {
   }
 
   @override
+  Future<List<Payment>> listAll({required String businessId}) async {
+    return _payments.where((p) => p.businessId == businessId).toList();
+  }
+
+  @override
   Future<List<PaymentMethod>> listMethods(String businessId) async {
     return _methods.where((m) => m.businessId == businessId).toList();
   }

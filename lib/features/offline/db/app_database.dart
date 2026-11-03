@@ -61,6 +61,7 @@ class OrderItemsTable extends Table {
   TextColumn get id => text()();
   TextColumn get businessId => text()();
   TextColumn get orderId => text()();
+  TextColumn get productId => text().nullable()();
   IntColumn get position => integer().withDefault(const Constant(0))();
   TextColumn get description => text()();
   RealColumn get quantity => real()();
@@ -258,5 +259,15 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) async => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(orderItemsTable, orderItemsTable.productId);
+      }
+    },
+  );
 }

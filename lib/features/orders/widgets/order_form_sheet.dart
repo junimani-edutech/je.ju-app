@@ -5,6 +5,7 @@ import '../../customers/customer.dart';
 import '../../customers/customers_providers.dart';
 import '../order.dart';
 import '../orders_providers.dart';
+import 'product_picker.dart';
 
 /// Form buat pesanan. Baris item dinamis. Customer opsional.
 /// Mengembalikan `true` lewat Navigator.pop bila sukses.
@@ -29,6 +30,8 @@ class _ItemRow {
     : descCtrl = TextEditingController(),
       qtyCtrl = TextEditingController(text: '1'),
       priceCtrl = TextEditingController(text: '0');
+
+  String? productId;
 
   final TextEditingController descCtrl;
   final TextEditingController qtyCtrl;
@@ -296,6 +299,20 @@ class _OrderFormSheetState extends ConsumerState<OrderFormSheet> {
               decoration: InputDecoration(
                 labelText: 'Deskripsi #${i + 1}',
                 isDense: true,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.inventory_2_outlined, size: 20),
+                  tooltip: 'Pilih Produk',
+                  onPressed: () async {
+                    final p = await ProductPicker.show(context);
+                    if (p != null) {
+                      setState(() {
+                        r.productId = p.id;
+                        r.descCtrl.text = p.name;
+                        r.priceCtrl.text = p.price.toString();
+                      });
+                    }
+                  },
+                ),
               ),
             ),
           ),

@@ -26,6 +26,19 @@ class SupabasePaymentsService implements PaymentsService {
   }
 
   @override
+  Future<List<Payment>> listAll({required String businessId}) async {
+    final rows = await _client
+        .from('payments')
+        .select()
+        .eq('business_id', businessId)
+        .order('payment_date', ascending: false)
+        .order('created_at', ascending: false);
+    return (rows as List)
+        .map((e) => Payment.fromMap(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  @override
   Future<List<PaymentMethod>> listMethods(String businessId) async {
     final rows = await _client
         .from('payment_methods')

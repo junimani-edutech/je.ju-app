@@ -2,6 +2,7 @@ import 'payment.dart';
 
 abstract class PaymentsService {
   Future<List<Payment>> listForOrder(String orderId);
+  Future<List<Payment>> listAll({required String businessId});
   Future<List<PaymentMethod>> listMethods(String businessId);
   Future<List<Account>> listAccounts(String businessId);
 
@@ -22,6 +23,5 @@ abstract class PaymentsService {
     required String reason,
   });
 
-  /// Upsert by id — dipakai dispatcher offline. Idempotent: create-or-replace.
   Future<void> upsert(Payment payment);
 }

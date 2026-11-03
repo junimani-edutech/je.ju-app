@@ -30,8 +30,33 @@ final paymentsForOrderProvider = FutureProvider.family<List<Payment>, String>((
   return ref.watch(paymentsServiceProvider).listForOrder(orderId);
 });
 
-/// Controller untuk mutasi pembayaran. Memanggil service lalu
-/// meng-invalidate provider yang terpengaruh.
+/// Daftar semua payment lintas order dalam satu bisnis (Fase 12.2).
+class AllPaymentsNotifier extends AsyncNotifier<List<Payment>> {
+  @override
+  Future<List<Payment>> build() async {
+    final biz = await ref.watch(currentBusinessProvider.future);
+    if (biz == null) return const <Payment>[];
+    return ref.watch(paymentsServiceProvider).listAll(businessId: biz.id);
+  }
+
+  Future<void> voidPayment({
+    required String paymentId,
+    required String reason,
+  }) async {
+    await ref
+        .read(paymentsServiceProvider)
+        .voidPayment(paymentId: paymentId, reason: reason);
+    ref.invalidateSelf();
+    ref.invalidate(ordersProvider);
+  }
+}
+
+final allPaymentsProvider =
+    AsyncNotifierProvider<AllPaymentsNotifier, List<Payment>>(
+      AllPaymentsNotifier.new,
+    );
+
+/// Controller untuk mutasi pembayaran pada satu order.
 class PaymentsController {
   PaymentsController(this._ref);
   final Ref _ref;
@@ -61,6 +86,7 @@ class PaymentsController {
         );
     _ref.invalidate(paymentsForOrderProvider(orderId));
     _ref.invalidate(ordersProvider);
+    _ref.invalidate(allPaymentsProvider);
     return id;
   }
 
@@ -74,6 +100,7 @@ class PaymentsController {
         .voidPayment(paymentId: paymentId, reason: reason);
     _ref.invalidate(paymentsForOrderProvider(orderId));
     _ref.invalidate(ordersProvider);
+    _ref.invalidate(allPaymentsProvider);
     return id;
   }
 }

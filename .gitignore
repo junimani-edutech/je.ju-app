@@ -51,3 +51,6 @@ app.*.map.json
 .env
 .env.local
 supabase/.temp/
+*.g.dart
+build/
+*.zip
