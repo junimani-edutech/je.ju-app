@@ -60,16 +60,17 @@ final orderStatsProvider = Provider<Map<String, int>>((ref) {
     
     final code = order.orderStatusId != null ? statusMap[order.orderStatusId] : null;
     
+    // ✅ PERBAIKAN: Gunakan 'ready' bukan 'done'
     if (code == 'draft') {
       newCount++;
     } else if (code == 'process') {
       processCount++;
-    } else if (code == 'done') {
+    } else if (code == 'ready') {
       readyCount++;
     }
 
-    // ✅ PERBAIKAN: Hanya hitung terlambat jika belum selesai (bukan 'done')
-    if (order.dueDate != null && code != 'done') {
+    // Hitung Deadline & Terlambat (Hanya untuk pesanan yang belum selesai)
+    if (order.dueDate != null && code != 'done' && code != 'ready') {
       final due = DateTime(order.dueDate!.year, order.dueDate!.month, order.dueDate!.day);
       
       if (due.isAtSameMomentAs(today)) {

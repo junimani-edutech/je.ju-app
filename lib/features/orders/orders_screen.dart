@@ -58,7 +58,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   @override
   Widget build(BuildContext context) {
     final statusParam = GoRouterState.of(context).uri.queryParameters['status'];
-    final specialFilter = GoRouterState.of(context).uri.queryParameters['filter']; // ✅ Baca filter waktu
+    final specialFilter = GoRouterState.of(context).uri.queryParameters['filter']; 
     
     final initialIndex = _tabs.indexOf(statusParam).clamp(0, _tabs.length - 1);
 
@@ -85,7 +85,7 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
               ? 'Deadline Hari Ini' 
               : specialFilter == 'late' 
                   ? 'Pesanan Terlambat' 
-                  : 'Pesanan'),
+                  : 'Pesanan', style: const TextStyle(fontWeight: FontWeight.bold)),
           bottom: TabBar(
             isScrollable: true,
             tabs: [
@@ -99,7 +99,6 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
         ),
         body: Column(
           children: [
-            // Banner info jika sedang dalam mode filter khusus
             if (specialFilter != null)
               Container(
                 width: double.infinity,
@@ -117,17 +116,20 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
                 ),
               ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: TextField(
                 key: const Key('orders_search'),
                 controller: _searchCtrl,
                 decoration: InputDecoration(
                   hintText: 'Cari nomor pesanan, pelanggan, atau catatan', 
                   prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
                   ),
-                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   suffixIcon: _query.isEmpty
                       ? null
                       : IconButton(
@@ -177,12 +179,11 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     BuildContext context,
     List<Order> all,
     String? tabStatus,
-    String? specialFilter, // ✅ Parameter filter khusus waktu
+    String? specialFilter, 
     Map<String, OrderStatus> statusMap,
     bool canWrite,
     Map<String, String> customerNames,
   ) {
-    // 1. Filter berdasarkan Tab Status
     var filtered = tabStatus == null
         ? all
         : all.where((o) {
@@ -194,13 +195,11 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
             return s?.code == tabStatus;
           }).toList();
 
-    // 2. Filter berdasarkan Waktu (Deadline / Late)
     if (specialFilter != null) {
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
 
       filtered = filtered.where((o) {
-        // Abaikan yang sudah selesai atau dibatalkan
         if (o.isCancelled) return false;
         final s = o.orderStatusId != null ? statusMap[o.orderStatusId!] : null;
         if (s?.code == 'done') return false;
@@ -218,7 +217,6 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
       }).toList();
     }
 
-    // 3. Filter Pencarian
     final searched = _applyQuery(filtered, customerNames);
 
     if (searched.isEmpty) {
@@ -242,18 +240,23 @@ class _OrdersScreenState extends ConsumerState<OrdersScreen> {
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(8, 8, 8, 88),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
       itemCount: searched.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 4),
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (_, i) {
         final o = searched[i];
         final status = o.orderStatusId != null
             ? statusMap[o.orderStatusId!]
             : null;
         final label = o.isCancelled ? 'Dibatalkan' : (status?.name ?? '—');
+        
+        // ✅ Ambil nama pelanggan dari map
+        final custName = o.customerId != null ? customerNames[o.customerId!] : null;
+
         return OrderListTile(
           order: o,
           statusLabel: label,
+          customerName: custName, // ✅ Kirim ke tile
           onTap: () => OrderDetailSheet.show(context, order: o),
         );
       },

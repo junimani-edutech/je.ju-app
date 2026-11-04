@@ -7,11 +7,13 @@ class OrderListTile extends StatelessWidget {
     super.key,
     required this.order,
     this.statusLabel,
+    this.customerName, // ✅ Tambahan parameter
     this.onTap,
   });
 
   final Order order;
   final String? statusLabel;
+  final String? customerName; // ✅ Properti baru
   final VoidCallback? onTap;
 
   String _fmtIdr(int amount) {
@@ -28,8 +30,20 @@ class OrderListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cancelled = order.isCancelled;
+    
+    // Format Tanggal
+    final dateStr = '${order.orderDate.year}-'
+        '${order.orderDate.month.toString().padLeft(2, '0')}-'
+        '${order.orderDate.day.toString().padLeft(2, '0')}';
+
     return Card(
+      elevation: 0,
       margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
         key: Key('order_tile_${order.id}'),
         title: Text(
@@ -38,17 +52,25 @@ class OrderListTile extends StatelessWidget {
               ? theme.textTheme.titleMedium?.copyWith(
                   decoration: TextDecoration.lineThrough,
                 )
-              : theme.textTheme.titleMedium,
+              : theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              '${order.orderDate.year}-'
-              '${order.orderDate.month.toString().padLeft(2, '0')}-'
-              '${order.orderDate.day.toString().padLeft(2, '0')}',
-            ),
+            // ✅ MENAMPILKAN NAMA PELANGGAN
+            if (customerName != null && customerName!.isNotEmpty) ...[
+              const SizedBox(height: 2),
+              Text(
+                customerName!,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
+            const SizedBox(height: 4),
+            Text(dateStr, style: theme.textTheme.bodySmall),
             if (statusLabel != null)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
@@ -63,7 +85,7 @@ class OrderListTile extends StatelessWidget {
                           : theme.colorScheme.primary,
                     ),
                     const SizedBox(width: 4),
-                    Text(statusLabel!),
+                    Text(statusLabel!, style: theme.textTheme.bodySmall),
                   ],
                 ),
               ),
@@ -74,7 +96,7 @@ class OrderListTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_fmtIdr(order.totalAmount), style: theme.textTheme.titleSmall),
+            Text(_fmtIdr(order.totalAmount), style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 2),
             Text(order.paymentStatus, style: theme.textTheme.bodySmall),
           ],

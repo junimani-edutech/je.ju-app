@@ -16,8 +16,9 @@ begin
   values
     (new.id, 'Draft',      'draft',     0, false),
     (new.id, 'Diproses',   'process',   1, false),
-    (new.id, 'Selesai',    'done',      2, true),
-    (new.id, 'Dibatalkan', 'cancelled', 3, true)
+    (new.id, 'Siap Antar/Ambil',   'ready',   2, false),
+    (new.id, 'Selesai',    'done',      3, true),
+    (new.id, 'Dibatalkan', 'cancelled', 4, true)
   on conflict (business_id, code) do nothing;
   return new;
 end;
@@ -39,7 +40,8 @@ from public.businesses b
 cross join (values
   ('Draft',      'draft',     0, false),
   ('Diproses',   'process',   1, false),
-  ('Selesai',    'done',      2, true),
-  ('Dibatalkan', 'cancelled', 3, true)
+  ('Siap Antar/Ambil',   'ready',   2, false),
+  ('Selesai',    'done',      3, true),
+  ('Dibatalkan', 'cancelled', 4, true)
 ) as v(name, code, sort_order, is_final)
 on conflict (business_id, code) do nothing;

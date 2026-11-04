@@ -20,7 +20,6 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authStateProvider).value;
-    final balancesAsync = ref.watch(accountBalancesProvider);
     final transactionsAsync = ref.watch(transactionsProvider);
     final now = DateTime.now();
     final from = DateTime(now.year, now.month, 1);
@@ -66,7 +65,7 @@ class DashboardScreen extends ConsumerWidget {
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          ref.invalidate(accountBalancesProvider);
+          // Saldo akun tidak lagi di-refresh di sini karena sudah dihapus dari UI
           ref.invalidate(cashFlowSummaryProvider((from: from, to: to)));
           ref.invalidate(transactionsProvider);
         },
@@ -85,6 +84,15 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
             const SizedBox(height: 24),
+            
+            // ✅ 1. STATUS PESANAN (Dipindah ke atas)
+            Text('Status Pesanan Saat Ini', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            _buildOrderStatusGrid(context, orderStats),
+            
+            const SizedBox(height: 24),
+            
+            // ✅ 2. KEUANGAN BULAN INI (Dipindah ke bawah status)
             Text('Keuangan bulan ini', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             Row(
@@ -103,14 +111,14 @@ class DashboardScreen extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 24),
-            Text('Status Pesanan Saat Ini', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-            _buildOrderStatusGrid(context, orderStats),
-            const SizedBox(height: 24),
+
             Text('Arus Kas (7 Hari Terakhir)', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             const CashFlowChart(),
+            
             const SizedBox(height: 24),
+            
+            // ✅ 3. TRANSAKSI TERBARU (Lebih Lega)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -129,7 +137,8 @@ class DashboardScreen extends ConsumerWidget {
                     child: Column(children: [Icon(Icons.receipt_long, size: 48, color: Colors.grey.shade400), const SizedBox(height: 8), Text('Belum ada transaksi', style: TextStyle(color: Colors.grey.shade600))]),
                   );
                 }
-                final recent = list.take(3).toList();
+                // Tampilkan maksimal 5 transaksi terbaru agar lebih lega (sebelumnya 3)
+                final recent = list.take(5).toList();
                 return Column(
                   children: recent.map((tx) => Card(
                     elevation: 0,
@@ -144,14 +153,7 @@ class DashboardScreen extends ConsumerWidget {
                 );
               },
             ),
-            const SizedBox(height: 24),
-            Text('Saldo akun', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            balancesAsync.when(
-              loading: () => const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Center(child: CircularProgressIndicator())),
-              error: (e, _) => Text('Gagal memuat saldo: $e'),
-              data: (list) => list.isEmpty ? const Text('Belum ada akun aktif.') : Column(children: [for (final b in list) _AccountBalanceCard(balance: b)]),
-            ),
+            // ✅ 4. SALDO AKUN DIHAPUS DARI SINI
             const SizedBox(height: 80), 
           ],
         ),
@@ -190,7 +192,7 @@ class DashboardScreen extends ConsumerWidget {
             label: 'Deadline Hari Ini', 
             count: stats['deadline'] ?? 0, 
             color: Colors.orange,
-            onTap: () => context.go('/app/orders?filter=deadline'), // ✅ Filter khusus
+            onTap: () => context.go('/app/orders?filter=deadline'),
           )),
         ]),
         const SizedBox(height: 8),
@@ -199,7 +201,7 @@ class DashboardScreen extends ConsumerWidget {
             label: 'Terlambat', 
             count: stats['late'] ?? 0, 
             color: Colors.red,
-            onTap: () => context.go('/app/orders?filter=late'), // ✅ Filter khusus
+            onTap: () => context.go('/app/orders?filter=late'),
           )),
           const SizedBox(width: 8),
           const Expanded(child: SizedBox()),
@@ -274,28 +276,6 @@ class _StatCard extends StatelessWidget {
             Text(value, style: (bold ? theme.textTheme.titleMedium : theme.textTheme.titleSmall)?.copyWith(color: color, fontWeight: FontWeight.bold)),
           ]),
         ),
-      ),
-    );
-  }
-}
-
-class _AccountBalanceCard extends StatelessWidget {
-  const _AccountBalanceCard({required this.balance});
-  final AccountBalance balance;
-  String _fmtIdr(int amount) { final negative = amount < 0; final abs = amount.abs(); final s = abs.toString(); final buf = StringBuffer(); for (var i = 0; i < s.length; i++) { if (i > 0 && (s.length - i) % 3 == 0) buf.write('.'); buf.write(s[i]); } return '${negative ? '-' : ''}Rp ${buf.toString()}'; }
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.withValues(alpha: 0.1))),
-      child: ListTile(
-        key: Key('dashboard_balance_${balance.accountId}'),
-        leading: const Icon(Icons.account_balance_outlined),
-        title: Text(balance.accountName),
-        trailing: Text(_fmtIdr(balance.balance), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
-        onTap: () => context.go('/app/more/transactions?account_id=${balance.accountId}'),
       ),
     );
   }
