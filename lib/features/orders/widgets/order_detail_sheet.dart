@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/providers.dart';
+import '../../customers/customers_providers.dart'; // ✅ PERBAIKAN: Import ini harus ada
 import '../../payments/widgets/payments_section.dart';
 import '../order.dart';
 import '../orders_providers.dart';
@@ -33,8 +35,6 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
     _itemsFuture = ref.read(ordersServiceProvider).listItems(widget.order.id);
   }
 
-  /// Cari versi terbaru order ini dari ordersProvider agar header reaktif
-  /// setelah record/void payment. Fallback ke widget.order bila belum ada.
   Order _liveOrder() {
     final list = ref.watch(ordersProvider).value ?? const <Order>[];
     for (final o in list) {
@@ -43,9 +43,63 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
     return widget.order;
   }
 
+  Future<void> _printInvoice() async {
+    final biz = ref.read(currentBusinessProvider).value;
+    if (biz == null) {
+      _showError('Bisnis tidak ditemukan');
+      return;
+    }
+
+    final customers = ref.read(activeCustomersProvider).value ?? [];
+    final customer = customers.where((c) => c.id == widget.order.customerId).firstOrNull;
+
+    try {
+      final items = await _itemsFuture;
+      await InvoiceService.printInvoice(widget.order, items, biz, customer);
+    } catch (e) {
+      _showError('Gagal mencetak: $e');
+    }
+  }
+
+  Future<void> _sendWhatsApp() async {
+    final customers = ref.read(activeCustomersProvider).value ?? [];
+    final customer = customers.where((c) => c.id == widget.order.customerId).firstOrNull;
+
+    if (customer == null || customer.phone == null || customer.phone!.isEmpty) {
+      _showError('Nomor HP pelanggan tidak ditemukan.');
+      return;
+    }
+
+    String phone = customer.phone!.replaceAll(RegExp(r'[^0-9]'), '');
+    if (phone.startsWith('0')) {
+      phone = '62${phone.substring(1)}';
+    }
+
+    final statusMap = {for (final s in ref.read(orderStatusesProvider).value ?? []) s.id: s.name};
+    final statusName = statusMap[widget.order.orderStatusId] ?? 'Diproses';
+
+    final message = 'Halo *${customer.name}*,\n\n'
+        'Pesanan Anda dengan nomor *${widget.order.orderNumber}* saat ini berstatus: *$statusName*.\n'
+        'Total tagihan: *Rp ${widget.order.totalAmount}*.\n\n'
+        'Terima kasih telah berbelanja di toko kami.';
+
+    final url = Uri.parse('https://wa.me/$phone?text=${Uri.encodeComponent(message)}');
+    
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      _showError('Aplikasi WhatsApp tidak ditemukan.');
+    }
+  }
+
+  void _showError(String msg) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    }
+  }
+
   Future<void> _changeStatus() async {
-    final statuses =
-        ref.read(orderStatusesProvider).value ?? const <OrderStatus>[];
+    final statuses = ref.read(orderStatusesProvider).value ?? const <OrderStatus>[];
     final selectable = statuses.where((s) => s.code != 'cancelled').toList();
     if (selectable.isEmpty) return;
 
@@ -54,7 +108,7 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
     bool loading = false;
     String? error;
 
-    final result = await showDialog<bool>(
+    await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setStateDialog) => AlertDialog(
@@ -75,17 +129,12 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
               TextField(
                 key: const Key('change_status_notes'),
                 controller: notesCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Catatan (opsional)',
-                ),
+                decoration: const InputDecoration(labelText: 'Catatan (opsional)'),
                 maxLines: 2,
               ),
               if (error != null) ...[
                 const SizedBox(height: 8),
-                Text(
-                  error!,
-                  style: TextStyle(color: Theme.of(ctx).colorScheme.error),
-                ),
+                Text(error!, style: TextStyle(color: Theme.of(ctx).colorScheme.error)),
               ],
             ],
           ),
@@ -99,44 +148,26 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
               onPressed: loading
                   ? null
                   : () async {
-                      setStateDialog(() {
-                        loading = true;
-                        error = null;
-                      });
+                      setStateDialog(() { loading = true; error = null; });
                       try {
-                        await ref
-                            .read(ordersProvider.notifier)
-                            .changeStatus(
-                              orderId: widget.order.id,
-                              orderStatusId: selectedId!,
-                              notes: notesCtrl.text.trim().isEmpty
-                                  ? null
-                                  : notesCtrl.text.trim(),
-                            );
+                        await ref.read(ordersProvider.notifier).changeStatus(
+                          orderId: widget.order.id,
+                          orderStatusId: selectedId!,
+                          notes: notesCtrl.text.trim().isEmpty ? null : notesCtrl.text.trim(),
+                        );
                         if (ctx.mounted) Navigator.of(ctx).pop(true);
                       } catch (e) {
-                        setStateDialog(() {
-                          error = e.toString();
-                          loading = false;
-                        });
+                        setStateDialog(() { error = e.toString(); loading = false; });
                       }
                     },
               child: loading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                   : const Text('Simpan'),
             ),
           ],
         ),
       ),
     );
-
-    if (result == true && mounted) {
-      // Sheet tidak perlu ditutup; liveOrder otomatis re-render.
-    }
   }
 
   Future<void> _cancelOrder() async {
@@ -148,10 +179,7 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              'Pesanan ${widget.order.orderNumber} akan ditandai '
-              'dibatalkan. Data tidak dihapus.',
-            ),
+            Text('Pesanan ${widget.order.orderNumber} akan ditandai dibatalkan.'),
             const SizedBox(height: 12),
             TextField(
               key: const Key('cancel_order_reason'),
@@ -162,35 +190,20 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Tidak'),
-          ),
-          FilledButton(
-            key: const Key('cancel_order_confirm'),
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Batalkan Pesanan'),
-          ),
+          TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Tidak')),
+          FilledButton(key: const Key('cancel_order_confirm'), onPressed: () => Navigator.of(ctx).pop(true), child: const Text('Batalkan Pesanan')),
         ],
       ),
     );
 
     if (confirmed == true) {
       try {
-        await ref
-            .read(ordersProvider.notifier)
-            .cancel(
-              widget.order.id,
-              reason: reasonCtrl.text.trim().isEmpty
-                  ? null
-                  : reasonCtrl.text.trim(),
-            );
-        // liveOrder re-render; sheet tetap terbuka dengan status cancelled.
+        await ref.read(ordersProvider.notifier).cancel(
+          widget.order.id,
+          reason: reasonCtrl.text.trim().isEmpty ? null : reasonCtrl.text.trim(),
+        );
       } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text('Gagal: $e')));
-        }
+        _showError('Gagal: $e');
       }
     }
   }
@@ -204,19 +217,13 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
     final statusMap = <String, OrderStatus>{
       for (final s in statusesAsync.value ?? <OrderStatus>[]) s.id: s,
     };
-    final currentStatus = liveOrder.orderStatusId != null
-        ? statusMap[liveOrder.orderStatusId!]
-        : null;
+    final currentStatus = liveOrder.orderStatusId != null ? statusMap[liveOrder.orderStatusId!] : null;
     final dateStr = liveOrder.orderDate.toIso8601String().substring(0, 10);
-    final statusLabel = liveOrder.isCancelled
-        ? 'Dibatalkan'
-        : (currentStatus?.name ?? '—');
+    final statusLabel = liveOrder.isCancelled ? 'Dibatalkan' : (currentStatus?.name ?? '—');
 
     return Padding(
       padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
+        left: 16, right: 16, top: 16,
         bottom: MediaQuery.of(context).viewInsets.bottom + 16,
       ),
       child: SingleChildScrollView(
@@ -224,32 +231,22 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(liveOrder.orderNumber, style: theme.textTheme.titleLarge),
+            Text(liveOrder.orderNumber, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 4),
             Text('Tanggal: $dateStr'),
             Text('Status: $statusLabel'),
             Text('Pembayaran: ${liveOrder.paymentStatus}'),
             const Divider(),
-            Text('Item', style: theme.textTheme.titleSmall),
+            Text('Item', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
             FutureBuilder<List<OrderItem>>(
               future: _itemsFuture,
               builder: (ctx, snap) {
                 if (snap.connectionState != ConnectionState.done) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
+                  return const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Center(child: CircularProgressIndicator()));
                 }
-                if (snap.hasError) {
-                  return Text('Gagal memuat item: ${snap.error}');
-                }
+                if (snap.hasError) return Text('Gagal memuat item: ${snap.error}');
                 final items = snap.data ?? const <OrderItem>[];
-                if (items.isEmpty) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 4),
-                    child: Text('—'),
-                  );
-                }
+                if (items.isEmpty) return const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: Text('—'));
                 return Column(
                   children: [
                     for (final it in items)
@@ -283,14 +280,29 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
               Text('Catatan: ${liveOrder.notes}'),
             ],
             const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: () async {
-                final items = await _itemsFuture;
-                if (!context.mounted) return;
-                await InvoiceService.printInvoice(liveOrder, items, 'JeJu');
-              },
-              icon: const Icon(Icons.print),
-              label: const Text('Cetak Invoice'),
+            
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _printInvoice,
+                    icon: const Icon(Icons.print, size: 18),
+                    label: const Text('Cetak'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _sendWhatsApp,
+                    icon: const Icon(Icons.chat, size: 18),
+                    label: const Text('Kirim WA'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.green.shade700,
+                      side: BorderSide(color: Colors.green.shade700),
+                    ),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             if (canWrite && !liveOrder.isCancelled) ...[
@@ -320,17 +332,12 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
   }
 
   Widget _kv(String k, int v, {bool bold = false}) {
-    final style = bold
-        ? Theme.of(context).textTheme.titleMedium
-        : Theme.of(context).textTheme.bodyMedium;
+    final style = bold ? Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold) : Theme.of(context).textTheme.bodyMedium;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(k, style: style),
-          Text(v.toString(), style: style),
-        ],
+        children: [Text(k, style: style), Text(v.toString(), style: style)],
       ),
     );
   }
