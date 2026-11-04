@@ -9,6 +9,7 @@ import '../features/customers/customers_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/finance/transactions_screen.dart';
 import '../features/finance/transfers_screen.dart';
+import '../features/inventory/inventory_screen.dart'; // ✅ Import Inventaris
 import '../features/members/accept_invite_screen.dart';
 import '../features/members/members_screen.dart';
 import '../features/offline/sync_status_screen.dart';
@@ -61,20 +62,28 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   ),
                   GoRoute(path: 'transfers', builder: (_, _) => const TransfersScreen()),
                   GoRoute(path: 'reports', builder: (_, _) => const ReportsScreen()),
-                  // ✅ PERBAIKAN: Tambahkan Penjaga RBAC di Router
+                  
+                  // ✅ RBAC Guard untuk Anggota
                   GoRoute(
                     path: 'members',
                     builder: (context, state) {
                       final perms = ref.read(currentPermissionsProvider);
-                      if (!perms.contains(AppPermission.manageMembers)) return const DashboardScreen(); // Tendang ke Dashboard
+                      if (!perms.contains(AppPermission.manageMembers)) return const DashboardScreen();
                       return const MembersScreen();
                     },
                   ),
+                  
                   GoRoute(path: 'products', builder: (_, _) => const ProductsScreen()),
+                  
+                  // ✅ ROUTE INVENTARIS BARU
+                  GoRoute(path: 'inventory', builder: (_, _) => const InventoryScreen()),
+                  
                   GoRoute(
                     path: 'sync',
                     builder: (_, _) => kIsWeb ? const DashboardScreen() : const SyncStatusScreen(),
                   ),
+                  
+                  // ✅ RBAC Guard untuk Pengaturan
                   GoRoute(
                     path: 'settings',
                     builder: (context, state) {

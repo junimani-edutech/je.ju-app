@@ -370,3 +370,11 @@ Jangan klaim test lulus kalau tidak dijalankan. Jangan klaim build sukses kalau 
 - Kategori pengeluaran saat ini digabung ke dalam kolom `description` (misal: "Bahan Baku - Beli telur"). Perlu dibuat tabel kategori terpisah di masa depan.
 - Fitur pagination untuk daftar transaksi dan pesanan belum ada (masih memuat semua data).
 
+
+---
+
+## 16. Fase v1.0.2: Fitur Bisnis Lengkap (Nov 2026)
+1. **PDF Invoice:** Tombol "Cetak" di Detail Pesanan menghasilkan PDF nota profesional (Nama Toko, Alamat, Rincian Item, Total).
+2. **WhatsApp Reminder:** Tombol "Kirim WA" di Detail Pesanan membuka aplikasi WhatsApp dengan pesan status pesanan otomatis.
+3. **Modul Inventaris:** Halaman baru "Inventaris Stok" (Menu Lainnya) untuk memantau bahan baku. Terintegrasi dengan tabel `inventory_items` di Supabase. Memiliki indikator warna merah jika stok di bawah minimum.
+4. **PDF Laporan:** Halaman Laporan memiliki tombol "Cetak PDF" yang menghasilkan laporan keuangan rapi (Ringkasan Pesanan, Arus Kas, Saldo Akun).

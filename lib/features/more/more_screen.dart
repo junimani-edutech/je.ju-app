@@ -137,7 +137,17 @@ class MoreScreen extends ConsumerWidget {
             subtitle: 'Daftar layanan & harga',
             onTap: () => context.go('/app/more/products'),
           ),
-          
+          // ✅ TAMBAHAN: Menu Inventaris Stok
+          _buildMenuItem(
+            context,
+            icon: Icons.inventory,
+            iconBgColor: Colors.brown.withValues(alpha: 0.1),
+            iconColor: Colors.brown,
+            title: 'Inventaris Stok',
+            subtitle: 'Pantau stok bahan & perlengkapan',
+            onTap: () => context.go('/app/more/inventory'),
+          ),
+
           if (permissions.contains(AppPermission.manageMembers))
             _buildMenuItem(
               context,
@@ -159,9 +169,7 @@ class MoreScreen extends ConsumerWidget {
               subtitle: 'Cek antrean data offline',
               onTap: () => context.go('/app/more/sync'),
             ),
-            
           const SizedBox(height: 16),
-          
           _buildMenuItem(
             context,
             icon: Icons.logout,
@@ -177,7 +185,7 @@ class MoreScreen extends ConsumerWidget {
           const SizedBox(height: 32),
           Center(
             child: Text(
-              'PayNote v1.0.1',
+              'PayNote v1.0.2',
               style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
             ),
           ),

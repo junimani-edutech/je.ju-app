@@ -9,6 +9,7 @@ import 'export_download.dart';
 import 'export_service.dart';
 import 'report_providers.dart';
 import 'report_summary.dart';
+import 'report_pdf_service.dart';
 
 enum ExportKind { ordersCsv, ordersXlsx, transactionsCsv }
 
@@ -62,6 +63,22 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     String fmt(DateTime d) =>
         '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
     return '${fmt(r.from)} s/d ${fmt(r.to)}';
+  }
+
+  Future<void> _printPdf(ReportSummary summary) async {
+    final biz = ref.read(currentBusinessProvider).value;
+    if (biz == null) return;
+    final range = _currentRange();
+    try {
+      await ReportPdfService.printReport(
+        business: biz,
+        summary: summary,
+        from: range.from,
+        to: range.to,
+      );
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal cetak PDF: $e')));
+    }
   }
 
   Future<void> _handleExport(ReportSummary summary, ExportKind kind) async {
@@ -293,6 +310,11 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           spacing: 8,
           runSpacing: 8,
           children: [
+            FilledButton.icon(
+              onPressed: () => _printPdf(summary),
+              icon: const Icon(Icons.picture_as_pdf),
+              label: const Text('Cetak PDF'),
+            ),
             OutlinedButton.icon(
               key: const Key('reports_export_orders_csv'),
               onPressed: () => _handleExport(summary, ExportKind.ordersCsv),
