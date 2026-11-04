@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/providers.dart';
 import '../../shared/widgets/business_selector.dart';
 import '../../core/theme/theme_mode_provider.dart';
 import 'widgets/cash_flow_chart.dart';
@@ -19,7 +18,6 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authStateProvider).value;
     final transactionsAsync = ref.watch(transactionsProvider);
     final now = DateTime.now();
     final from = DateTime(now.year, now.month, 1);
@@ -73,17 +71,7 @@ class DashboardScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           children: [
             if (!kIsWeb) const OfflineBanner(),
-            if (user != null)
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.withValues(alpha: 0.2))),
-                child: ListTile(
-                  leading: const Icon(Icons.person_outline),
-                  title: Text(user.email), 
-                  subtitle: const Text('Pengguna aktif'),
-                ),
-              ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             
             // ✅ 1. STATUS PESANAN (Dipindah ke atas)
             Text('Status Pesanan Saat Ini', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),

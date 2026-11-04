@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/providers.dart';
-import '../../customers/customers_providers.dart'; // ✅ PERBAIKAN: Import ini harus ada
+import '../../customers/customers_providers.dart';
 import '../../payments/widgets/payments_section.dart';
 import '../order.dart';
 import '../orders_providers.dart';
@@ -237,7 +237,10 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
             Text('Status: $statusLabel'),
             Text('Pembayaran: ${liveOrder.paymentStatus}'),
             const Divider(),
+            
+            // ✅ PERBAIKAN UI: Daftar Item dalam Card
             Text('Item', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
             FutureBuilder<List<OrderItem>>(
               future: _itemsFuture,
               builder: (ctx, snap) {
@@ -247,25 +250,35 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
                 if (snap.hasError) return Text('Gagal memuat item: ${snap.error}');
                 final items = snap.data ?? const <OrderItem>[];
                 if (items.isEmpty) return const Padding(padding: EdgeInsets.symmetric(vertical: 4), child: Text('—'));
-                return Column(
-                  children: [
-                    for (final it in items)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4),
-                        child: Row(
-                          children: [
-                            Expanded(child: Text(it.description)),
-                            Text('${it.quantity} x ${it.unitPrice}'),
-                            const SizedBox(width: 12),
-                            Text(it.lineTotal.toString()),
-                          ],
-                        ),
-                      ),
-                  ],
+                return Card(
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: Colors.grey.withValues(alpha: 0.2))),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      children: [
+                        for (final it in items)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Row(
+                              children: [
+                                Expanded(child: Text(it.description, style: theme.textTheme.bodyMedium)),
+                                Text('${it.quantity} x ${it.unitPrice}', style: theme.textTheme.bodySmall),
+                                const SizedBox(width: 12),
+                                Text(it.lineTotal.toString(), style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 );
               },
             ),
+            const SizedBox(height: 16),
             const Divider(),
+            
+            // RINGKASAN BIAYA
             _kv('Subtotal', liveOrder.subtotalAmount),
             _kv('Diskon', -liveOrder.discountAmount),
             _kv('Biaya tambahan', liveOrder.additionalFeeAmount),
@@ -277,10 +290,11 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
             PaymentsSection(order: liveOrder),
             if (liveOrder.notes != null && liveOrder.notes!.isNotEmpty) ...[
               const SizedBox(height: 8),
-              Text('Catatan: ${liveOrder.notes}'),
+              Text('Catatan: ${liveOrder.notes}', style: theme.textTheme.bodySmall?.copyWith(fontStyle: FontStyle.italic)),
             ],
             const SizedBox(height: 16),
             
+            // TOMBOL AKSI
             Row(
               children: [
                 Expanded(

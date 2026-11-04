@@ -133,8 +133,8 @@ class MoreScreen extends ConsumerWidget {
             icon: Icons.inventory_2_outlined,
             iconBgColor: Colors.teal.withValues(alpha: 0.1),
             iconColor: Colors.teal,
-            title: 'Master Produk',
-            subtitle: 'Daftar layanan & harga',
+            title: 'Produk & Jasa',
+            subtitle: 'Daftar barang & jasa yang dijual',
             onTap: () => context.go('/app/more/products'),
           ),
           // ✅ TAMBAHAN: Menu Inventaris Stok
@@ -143,8 +143,8 @@ class MoreScreen extends ConsumerWidget {
             icon: Icons.inventory,
             iconBgColor: Colors.brown.withValues(alpha: 0.1),
             iconColor: Colors.brown,
-            title: 'Inventaris Stok',
-            subtitle: 'Pantau stok bahan & perlengkapan',
+            title: 'Stok Bahan Baku',
+            subtitle: 'Pantau stok deterjen, plastik, dll',
             onTap: () => context.go('/app/more/inventory'),
           ),
 
