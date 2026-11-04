@@ -49,8 +49,8 @@ final orderStatsProvider = Provider<Map<String, int>>((ref) {
   int newCount = 0;
   int processCount = 0;
   int readyCount = 0;
-  int deadlineCount = 0; // ✅ Tambahan
-  int lateCount = 0;     // ✅ Tambahan
+  int deadlineCount = 0; 
+  int lateCount = 0;     
 
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
@@ -60,7 +60,6 @@ final orderStatsProvider = Provider<Map<String, int>>((ref) {
     
     final code = order.orderStatusId != null ? statusMap[order.orderStatusId] : null;
     
-    // Hitung status utama
     if (code == 'draft') {
       newCount++;
     } else if (code == 'process') {
@@ -69,7 +68,7 @@ final orderStatsProvider = Provider<Map<String, int>>((ref) {
       readyCount++;
     }
 
-    // ✅ Hitung Deadline & Terlambat (Hanya untuk pesanan yang belum selesai)
+    // ✅ PERBAIKAN: Hanya hitung terlambat jika belum selesai (bukan 'done')
     if (order.dueDate != null && code != 'done') {
       final due = DateTime(order.dueDate!.year, order.dueDate!.month, order.dueDate!.day);
       

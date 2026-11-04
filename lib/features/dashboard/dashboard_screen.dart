@@ -7,7 +7,7 @@ import '../../core/providers.dart';
 import '../../shared/widgets/business_selector.dart';
 import '../../core/theme/theme_mode_provider.dart';
 import 'widgets/cash_flow_chart.dart';
-import 'dashboard_providers.dart'; // ✅ Import provider baru
+import 'dashboard_providers.dart';
 import '../transactions/presentation/expense_form_sheet.dart'; 
 import '../../shared/widgets/offline_banner.dart';
 import '../offline/widgets/sync_queue_badge.dart';
@@ -27,7 +27,7 @@ class DashboardScreen extends ConsumerWidget {
     final to = DateTime(now.year, now.month, now.day);
     
     final summaryAsync = ref.watch(cashFlowSummaryProvider((from: from, to: to)));
-    final orderStats = ref.watch(orderStatsProvider); // ✅ Gunakan provider asli
+    final orderStats = ref.watch(orderStatsProvider);
 
     final summary = summaryAsync.value ?? const CashFlowSummary(income: 0, expense: 0, paymentsNet: 0, net: 0);
 
@@ -73,7 +73,7 @@ class DashboardScreen extends ConsumerWidget {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const OfflineBanner(),
+            if (!kIsWeb) const OfflineBanner(),
             if (user != null)
               Card(
                 elevation: 0,
@@ -105,7 +105,7 @@ class DashboardScreen extends ConsumerWidget {
             const SizedBox(height: 24),
             Text('Status Pesanan Saat Ini', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
-            _buildOrderStatusGrid(orderStats), // ✅ Panggil Grid
+            _buildOrderStatusGrid(context, orderStats),
             const SizedBox(height: 24),
             Text('Arus Kas (7 Hari Terakhir)', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -159,23 +159,48 @@ class DashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildOrderStatusGrid(Map<String, int> stats) {
+  Widget _buildOrderStatusGrid(BuildContext context, Map<String, int> stats) {
     return Column(
       children: [
         Row(children: [
-          Expanded(child: _StatusBox(label: 'Antrian Baru', count: stats['new'] ?? 0, color: Colors.amber)),
+          Expanded(child: _StatusBox(
+            label: 'Antrian Baru', 
+            count: stats['new'] ?? 0, 
+            color: Colors.amber,
+            onTap: () => context.go('/app/orders?status=draft'),
+          )),
           const SizedBox(width: 8),
-          Expanded(child: _StatusBox(label: 'Sedang Proses', count: stats['process'] ?? 0, color: Colors.blue)),
+          Expanded(child: _StatusBox(
+            label: 'Sedang Proses', 
+            count: stats['process'] ?? 0, 
+            color: Colors.blue,
+            onTap: () => context.go('/app/orders?status=process'),
+          )),
         ]),
         const SizedBox(height: 8),
         Row(children: [
-          Expanded(child: _StatusBox(label: 'Siap Diambil', count: stats['ready'] ?? 0, color: Colors.green)),
+          Expanded(child: _StatusBox(
+            label: 'Siap Diambil', 
+            count: stats['ready'] ?? 0, 
+            color: Colors.green,
+            onTap: () => context.go('/app/orders?status=ready'),
+          )),
           const SizedBox(width: 8),
-          Expanded(child: _StatusBox(label: 'Deadline Hari Ini', count: stats['deadline'] ?? 0, color: Colors.orange)),
+          Expanded(child: _StatusBox(
+            label: 'Deadline Hari Ini', 
+            count: stats['deadline'] ?? 0, 
+            color: Colors.orange,
+            onTap: () => context.go('/app/orders?filter=deadline'), // ✅ Filter khusus
+          )),
         ]),
         const SizedBox(height: 8),
         Row(children: [
-          Expanded(child: _StatusBox(label: 'Terlambat', count: stats['late'] ?? 0, color: Colors.red)),
+          Expanded(child: _StatusBox(
+            label: 'Terlambat', 
+            count: stats['late'] ?? 0, 
+            color: Colors.red,
+            onTap: () => context.go('/app/orders?filter=late'), // ✅ Filter khusus
+          )),
           const SizedBox(width: 8),
           const Expanded(child: SizedBox()),
         ]),
@@ -197,18 +222,32 @@ class DashboardScreen extends ConsumerWidget {
 }
 
 class _StatusBox extends StatelessWidget {
-  final String label; final int count; final MaterialColor color;
-  const _StatusBox({required this.label, required this.count, required this.color});
+  final String label; final int count; final MaterialColor color; final VoidCallback? onTap;
+  
+  const _StatusBox({required this.label, required this.count, required this.color, this.onTap});
+  
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.3))),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color.shade700)),
-        const SizedBox(height: 4),
-        Text('$count', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color.shade900)),
-      ]),
+    return Card(
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12), 
+        side: BorderSide(color: color.withValues(alpha: 0.3))
+      ),
+      color: color.withValues(alpha: 0.1),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: color.shade700)),
+            const SizedBox(height: 4),
+            Text('$count', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color.shade900)),
+          ]),
+        ),
+      ),
     );
   }
 }

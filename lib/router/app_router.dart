@@ -19,6 +19,8 @@ import '../features/orders/orders_screen.dart';
 import '../features/payments/payments_screen.dart';
 import '../features/reports/reports_screen.dart';
 import '../features/settings/settings_screen.dart';
+import '../shared/permissions/app_permission.dart';
+import '../shared/permissions/permission_provider.dart';
 import '../shared/widgets/app_shell.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -31,92 +33,55 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     initialLocation: '/sign-in',
     refreshListenable: refresh,
     routes: [
-      // Auth + onboarding (di luar shell)
       GoRoute(path: '/sign-in', builder: (_, _) => const SignInScreen()),
       GoRoute(path: '/sign-up', builder: (_, _) => const SignUpScreen()),
       GoRoute(path: '/onboarding', builder: (_, _) => const OnboardingScreen()),
-      GoRoute(
-        path: '/accept-invite',
-        builder: (_, _) => const AcceptInviteScreen(),
-      ),
+      GoRoute(path: '/accept-invite', builder: (_, _) => const AcceptInviteScreen()),
 
-      // Shell: branch 0..3
       StatefulShellRoute.indexedStack(
-        builder: (context, state, navigationShell) =>
-            AppShell(navigationShell: navigationShell),
+        builder: (context, state, navigationShell) => AppShell(navigationShell: navigationShell),
         branches: [
-          // 0 = dashboard
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/app/dashboard',
-                builder: (_, _) => const DashboardScreen(),
-              ),
-            ],
-          ),
-          // 1 = orders
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/app/orders',
-                builder: (_, _) => const OrdersScreen(),
-              ),
-            ],
-          ),
-          // 2 = customers
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/app/customers',
-                builder: (_, _) => const CustomersScreen(),
-              ),
-            ],
-          ),
-          // 3 = more (payments, reports, settings)
+          StatefulShellBranch(routes: [GoRoute(path: '/app/dashboard', builder: (_, _) => const DashboardScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/app/orders', builder: (_, _) => const OrdersScreen())]),
+          StatefulShellBranch(routes: [GoRoute(path: '/app/customers', builder: (_, _) => const CustomersScreen())]),
           StatefulShellBranch(
             routes: [
               GoRoute(
                 path: '/app/more',
                 builder: (_, _) => const MoreScreen(),
                 routes: [
-                  GoRoute(
-                    path: 'payments',
-                    builder: (_, _) => const PaymentsScreen(),
-                  ),
-                  // ✅ PERBAIKAN: Menangkap query parameter untuk transaksi
+                  GoRoute(path: 'payments', builder: (_, _) => const PaymentsScreen()),
                   GoRoute(
                     path: 'transactions',
-                    builder: (context, state) {
-                      return TransactionsScreen(
-                        typeFilter: state.uri.queryParameters['type'],
-                        periodFilter: state.uri.queryParameters['period'],
-                        accountIdFilter: state.uri.queryParameters['account_id'],
-                      );
-                    },
+                    builder: (context, state) => TransactionsScreen(
+                      typeFilter: state.uri.queryParameters['type'],
+                      periodFilter: state.uri.queryParameters['period'],
+                      accountIdFilter: state.uri.queryParameters['account_id'],
+                    ),
                   ),
-                  GoRoute(
-                    path: 'transfers',
-                    builder: (_, _) => const TransfersScreen(),
-                  ),
-                  GoRoute(
-                    path: 'reports',
-                    builder: (_, _) => const ReportsScreen(),
-                  ),
+                  GoRoute(path: 'transfers', builder: (_, _) => const TransfersScreen()),
+                  GoRoute(path: 'reports', builder: (_, _) => const ReportsScreen()),
+                  // ✅ PERBAIKAN: Tambahkan Penjaga RBAC di Router
                   GoRoute(
                     path: 'members',
-                    builder: (_, _) => const MembersScreen(),
+                    builder: (context, state) {
+                      final perms = ref.read(currentPermissionsProvider);
+                      if (!perms.contains(AppPermission.manageMembers)) return const DashboardScreen(); // Tendang ke Dashboard
+                      return const MembersScreen();
+                    },
                   ),
-                  GoRoute(
-                    path: 'products',
-                    builder: (_, _) => const ProductsScreen(),
-                  ),
+                  GoRoute(path: 'products', builder: (_, _) => const ProductsScreen()),
                   GoRoute(
                     path: 'sync',
-                    builder: (_, _) => const SyncStatusScreen(),
+                    builder: (_, _) => kIsWeb ? const DashboardScreen() : const SyncStatusScreen(),
                   ),
                   GoRoute(
                     path: 'settings',
-                    builder: (_, _) => const SettingsScreen(),
+                    builder: (context, state) {
+                      final perms = ref.read(currentPermissionsProvider);
+                      if (!perms.contains(AppPermission.editBusinessProfile)) return const DashboardScreen();
+                      return const SettingsScreen();
+                    },
                   ),
                 ],
               ),
@@ -127,8 +92,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
     redirect: (context, state) {
       final isLoggedIn = ref.read(authStateProvider).value != null;
-      final isAuthRoute = state.matchedLocation == '/sign-in' ||
-          state.matchedLocation == '/sign-up';
+      final isAuthRoute = state.matchedLocation == '/sign-in' || state.matchedLocation == '/sign-up';
       final isInviteRoute = state.matchedLocation == '/accept-invite';
 
       if (!isLoggedIn && !isAuthRoute && !isInviteRoute) {
@@ -137,9 +101,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       }
       if (isLoggedIn && isAuthRoute) {
         final target = state.uri.queryParameters['redirect'];
-        if (target != null && target.startsWith('/')) {
-          return Uri.decodeComponent(target);
-        }
+        if (target != null && target.startsWith('/')) return Uri.decodeComponent(target);
         return '/app/dashboard';
       }
       return null;

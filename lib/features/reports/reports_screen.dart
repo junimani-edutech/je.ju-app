@@ -22,7 +22,7 @@ class ReportsScreen extends ConsumerStatefulWidget {
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   int _rangeIndex = 0;
   DateTime? _customFrom;
-  DateTime? _customTo; // 0 = bulan ini, 1 = bulan lalu
+  DateTime? _customTo;
 
   ({DateTime from, DateTime to}) _currentRange() {
     if (_rangeIndex == 2 && _customFrom != null && _customTo != null) {
@@ -111,9 +111,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       if (!kIsWeb && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'File dibuat. Unduh file native akan tersedia di Fase 7.',
-            ),
+            content: Text('File berhasil dibuat.'),
           ),
         );
       }
@@ -132,19 +130,23 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     final async = ref.watch(reportSummaryProvider(range));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Laporan')),
+      appBar: AppBar(
+        title: const Text('Laporan & Analitik', style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
             child: Row(
               children: [
                 Expanded(
                   child: SegmentedButton<int>(
                     key: const Key('reports_range_selector'),
+                    // ✅ PERBAIKAN: Menambahkan Segment ke-3 untuk Kustom
                     segments: const [
                       ButtonSegment(value: 0, label: Text('Bulan ini')),
                       ButtonSegment(value: 1, label: Text('Bulan lalu')),
+                      ButtonSegment(value: 2, label: Text('Kustom')),
                     ],
                     selected: {_rangeIndex},
                     onSelectionChanged: (s) {
@@ -162,9 +164,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(_rangeLabel(), style: theme.textTheme.bodySmall),
+            child: Text(_rangeLabel(), style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Expanded(
             child: async.when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -192,8 +194,8 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Ringkasan', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
+        Text('Ringkasan', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
@@ -204,7 +206,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 color: theme.colorScheme.primary,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Expanded(
               child: _StatCard(
                 label: 'Total pesanan',
@@ -215,7 +217,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
@@ -223,10 +225,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 label: 'Pembayaran diterima',
                 value: _fmtIdr(summary.paymentsReceived),
                 icon: Icons.payments_outlined,
-                color: theme.colorScheme.tertiary,
+                color: Colors.orange,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Expanded(
               child: _StatCard(
                 label: 'Sisa tagihan',
@@ -237,9 +239,9 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        Text('Arus kas', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
+        const SizedBox(height: 24),
+        Text('Arus Kas', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
@@ -250,7 +252,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 color: theme.colorScheme.primary,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Expanded(
               child: _StatCard(
                 label: 'Pengeluaran',
@@ -261,7 +263,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Row(
           children: [
             Expanded(
@@ -269,24 +271,24 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                 label: 'Pembayaran pesanan',
                 value: _fmtIdr(summary.paymentsNet),
                 icon: Icons.payments_outlined,
-                color: theme.colorScheme.tertiary,
+                color: Colors.orange,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             Expanded(
               child: _StatCard(
-                label: 'Arus kas bersih',
+                label: 'Laba / Arus kas bersih',
                 value: _fmtIdr(summary.cashFlowNet),
                 icon: Icons.account_balance_wallet_outlined,
-                color: theme.colorScheme.secondary,
+                color: Colors.green,
                 bold: true,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        Text('Ekspor', style: theme.textTheme.titleMedium),
-        const SizedBox(height: 8),
+        const SizedBox(height: 24),
+        Text('Ekspor Data', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        const SizedBox(height: 12),
         Wrap(
           spacing: 8,
           runSpacing: 8,
@@ -294,47 +296,56 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
             OutlinedButton.icon(
               key: const Key('reports_export_orders_csv'),
               onPressed: () => _handleExport(summary, ExportKind.ordersCsv),
-              icon: const Icon(Icons.table_view_outlined),
+              icon: const Icon(Icons.table_view_outlined, size: 18),
               label: const Text('Order CSV'),
             ),
             OutlinedButton.icon(
               key: const Key('reports_export_orders_xlsx'),
               onPressed: () => _handleExport(summary, ExportKind.ordersXlsx),
-              icon: const Icon(Icons.grid_on_outlined),
+              icon: const Icon(Icons.grid_on_outlined, size: 18),
               label: const Text('Order XLSX'),
             ),
             OutlinedButton.icon(
               key: const Key('reports_export_transactions_csv'),
               onPressed: () =>
                   _handleExport(summary, ExportKind.transactionsCsv),
-              icon: const Icon(Icons.receipt_long_outlined),
+              icon: const Icon(Icons.receipt_long_outlined, size: 18),
               label: const Text('Transaksi CSV'),
             ),
           ],
         ),
-        const SizedBox(height: 16),
-        Text('Saldo akun (saat ini)', style: theme.textTheme.titleMedium),
+        const SizedBox(height: 24),
+        Text('Saldo Akun (Saat Ini)', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         if (summary.balanceByAccount.isEmpty)
-          const Text('Belum ada akun aktif.')
+          const Padding(
+            padding: EdgeInsets.all(16),
+            child: Text('Belum ada akun aktif.', textAlign: TextAlign.center),
+          )
         else
           Column(
             children: [
               for (final b in summary.balanceByAccount)
                 Card(
-                  margin: const EdgeInsets.only(bottom: 4),
+                  elevation: 0,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+                  ),
                   child: ListTile(
                     key: Key('reports_balance_${b.accountId}'),
                     leading: const Icon(Icons.account_balance_outlined),
                     title: Text(b.accountName),
                     trailing: Text(
                       _fmtIdr(b.balance),
-                      style: theme.textTheme.titleMedium,
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
             ],
           ),
+        const SizedBox(height: 32),
       ],
     );
   }
@@ -352,6 +363,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
   }
 }
 
+// ✅ PERBAIKAN: Desain StatCard disamakan dengan Dashboard (Premium)
 class _StatCard extends StatelessWidget {
   const _StatCard({
     required this.label,
@@ -371,22 +383,24 @@ class _StatCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color),
-            const SizedBox(height: 8),
+            Icon(icon, color: color, size: 20),
+            const SizedBox(height: 12),
             Text(label, style: theme.textTheme.bodySmall),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               value,
-              style:
-                  (bold
-                          ? theme.textTheme.titleMedium
-                          : theme.textTheme.titleSmall)
-                      ?.copyWith(color: color),
+              style: (bold ? theme.textTheme.titleMedium : theme.textTheme.titleSmall)
+                  ?.copyWith(color: color, fontWeight: FontWeight.bold),
             ),
           ],
         ),

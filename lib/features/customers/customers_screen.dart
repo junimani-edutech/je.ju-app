@@ -74,6 +74,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final canWrite = ref.watch(currentMemberProvider).value?.canWrite ?? false;
     final activeAsync = ref.watch(activeCustomersProvider);
     final archivedAsync = ref.watch(archivedCustomersProvider);
@@ -82,7 +83,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Pelanggan'),
+          title: const Text('Pelanggan', style: TextStyle(fontWeight: FontWeight.bold)),
           bottom: const TabBar(
             tabs: [
               Tab(key: Key('customers_tab_active'), text: 'Aktif'),
@@ -92,18 +93,22 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
         ),
         body: Column(
           children: [
+            // ✅ PERBAIKAN: Search Bar Modern
             Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 4),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
               child: TextField(
                 key: const Key('customers_search'),
                 controller: _searchCtrl,
                 decoration: InputDecoration(
-                  hintText: 'Cari nama, telepon, atau email',
+                  hintText: 'Cari nama, telepon, atau email...',
                   prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
                   ),
-                  isDense: true,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
                   suffixIcon: _query.isEmpty
                       ? null
                       : IconButton(
@@ -121,16 +126,8 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
             Expanded(
               child: TabBarView(
                 children: [
-                  _buildList(
-                    activeAsync,
-                    isArchivedTab: false,
-                    canWrite: canWrite,
-                  ),
-                  _buildList(
-                    archivedAsync,
-                    isArchivedTab: true,
-                    canWrite: canWrite,
-                  ),
+                  _buildList(activeAsync, isArchivedTab: false, canWrite: canWrite),
+                  _buildList(archivedAsync, isArchivedTab: true, canWrite: canWrite),
                 ],
               ),
             ),
@@ -182,15 +179,15 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
             icon: Icons.people_outline,
             title: 'Belum ada pelanggan',
             subtitle: canWrite
-                ? 'Tekan tombol Tambah untuk menambah pelanggan pertama.'
+                ? 'Tekan tombol Tambah untuk menambah pelanggan pertama Anda.'
                 : 'Pelanggan akan muncul di sini setelah ditambahkan.',
           );
         }
 
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(8, 4, 8, 88),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
           itemCount: filtered.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 4),
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
           itemBuilder: (_, i) {
             final c = filtered[i];
             return CustomerListTile(
@@ -206,6 +203,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
     );
   }
 
+  // ✅ PERBAIKAN: Empty State Premium
   Widget _buildEmpty({
     required IconData icon,
     required String title,
@@ -216,19 +214,26 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 56, color: theme.colorScheme.outline),
-            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.05),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 64, color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+            ),
+            const SizedBox(height: 24),
             Text(
               title,
-              style: theme.textTheme.titleMedium,
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
               subtitle,
-              style: theme.textTheme.bodySmall,
+              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
               textAlign: TextAlign.center,
             ),
           ],

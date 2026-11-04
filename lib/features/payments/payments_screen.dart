@@ -9,11 +9,26 @@ import '../orders/orders_providers.dart';
 import 'payment.dart';
 import 'payments_providers.dart';
 
-class PaymentsScreen extends ConsumerWidget {
+class PaymentsScreen extends ConsumerStatefulWidget {
   const PaymentsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PaymentsScreen> createState() => _PaymentsScreenState();
+}
+
+class _PaymentsScreenState extends ConsumerState<PaymentsScreen> {
+  final _searchCtrl = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final canWrite = ref.watch(currentMemberProvider).value?.canWrite ?? false;
     final paymentsAsync = ref.watch(allPaymentsProvider);
     final ordersAsync = ref.watch(ordersProvider);
@@ -25,7 +40,7 @@ class PaymentsScreen extends ConsumerWidget {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Pembayaran'),
+          title: const Text('Pembayaran', style: TextStyle(fontWeight: FontWeight.bold)),
           bottom: const TabBar(
             tabs: [
               Tab(key: Key('payments_tab_all'), text: 'Semua'),
@@ -34,24 +49,44 @@ class PaymentsScreen extends ConsumerWidget {
             ],
           ),
         ),
-        body: TabBarView(
+        body: Column(
           children: [
-            _buildList(context, ref, paymentsAsync, orderMap, null, canWrite),
-            _buildList(
-              context,
-              ref,
-              paymentsAsync,
-              orderMap,
-              'confirmed',
-              canWrite,
+            // ✅ PERBAIKAN: Search Bar Modern
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: TextField(
+                controller: _searchCtrl,
+                decoration: InputDecoration(
+                  hintText: 'Cari nomor pesanan...',
+                  prefixIcon: const Icon(Icons.search),
+                  filled: true,
+                  fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                  suffixIcon: _query.isEmpty
+                      ? null
+                      : IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchCtrl.clear();
+                            setState(() => _query = '');
+                          },
+                        ),
+                ),
+                onChanged: (v) => setState(() => _query = v.trim()),
+              ),
             ),
-            _buildList(
-              context,
-              ref,
-              paymentsAsync,
-              orderMap,
-              'cancelled',
-              canWrite,
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildList(context, paymentsAsync, orderMap, null, canWrite),
+                  _buildList(context, paymentsAsync, orderMap, 'confirmed', canWrite),
+                  _buildList(context, paymentsAsync, orderMap, 'cancelled', canWrite),
+                ],
+              ),
             ),
           ],
         ),
@@ -61,7 +96,6 @@ class PaymentsScreen extends ConsumerWidget {
 
   Widget _buildList(
     BuildContext context,
-    WidgetRef ref,
     AsyncValue<List<Payment>> async,
     Map<String, Order> orderMap,
     String? filter,
@@ -74,21 +108,40 @@ class PaymentsScreen extends ConsumerWidget {
         onRetry: () => ref.invalidate(allPaymentsProvider),
       ),
       data: (list) {
-        final filtered = filter == null
+        // 1. Filter Tab
+        var filtered = filter == null
             ? list
             : list.where((p) => p.status == filter).toList();
+
+        // 2. Filter Pencarian
+        if (_query.isNotEmpty) {
+          final q = _query.toLowerCase();
+          filtered = filtered.where((p) {
+            final orderNo = orderMap[p.orderId]?.orderNumber.toLowerCase() ?? '';
+            return orderNo.contains(q);
+          }).toList();
+        }
+
+        // 3. Empty State Premium
         if (filtered.isEmpty) {
-          return const EmptyState(
+          if (_query.isNotEmpty) {
+            return _buildEmpty(
+              icon: Icons.search_off,
+              title: 'Tidak ada hasil',
+              subtitle: 'Tidak ada pembayaran yang cocok dengan "$_query".',
+            );
+          }
+          return _buildEmpty(
             icon: Icons.payments_outlined,
             title: 'Belum ada pembayaran',
-            subtitle:
-                'Pembayaran tercatat saat Anda mencatatnya di detail pesanan.',
+            subtitle: 'Pembayaran tercatat saat Anda mencatatnya di detail pesanan.',
           );
         }
+
         return ListView.separated(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
           itemCount: filtered.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 4),
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
           itemBuilder: (ctx, i) {
             final p = filtered[i];
             return _PaymentRow(
@@ -100,6 +153,45 @@ class PaymentsScreen extends ConsumerWidget {
           },
         );
       },
+    );
+  }
+
+  // ✅ Empty State Premium
+  Widget _buildEmpty({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.05),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 64, color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              title,
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: theme.textTheme.bodyMedium?.copyWith(color: Colors.grey),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -194,25 +286,38 @@ class _PaymentRow extends StatelessWidget {
     final isReversal = payment.isReversal;
     final isCancelled = payment.isCancelled;
 
+    // ✅ PERBAIKAN: Desain Card disamakan dengan halaman lain
     return Card(
+      elevation: 0,
       margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: ListTile(
         key: Key('payment_row_${payment.id}'),
-        leading: Icon(
-          isReversal
-              ? Icons.undo
-              : isCancelled
-              ? Icons.cancel_outlined
-              : Icons.check_circle_outline,
-          color: isReversal || isCancelled
-              ? theme.colorScheme.error
-              : theme.colorScheme.primary,
+        leading: CircleAvatar(
+          backgroundColor: (isReversal || isCancelled) 
+              ? theme.colorScheme.error.withValues(alpha: 0.1) 
+              : theme.colorScheme.primary.withValues(alpha: 0.1),
+          child: Icon(
+            isReversal
+                ? Icons.undo
+                : isCancelled
+                ? Icons.cancel_outlined
+                : Icons.check_circle_outline,
+            color: (isReversal || isCancelled)
+                ? theme.colorScheme.error
+                : theme.colorScheme.primary,
+          ),
         ),
         title: Row(
           children: [
             Text(
               _fmtIdr(payment.signedAmount),
               style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
                 color: isReversal || isCancelled
                     ? theme.colorScheme.error
                     : null,
@@ -220,17 +325,9 @@ class _PaymentRow extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             if (isReversal)
-              _badge(
-                'Reversal',
-                theme.colorScheme.errorContainer,
-                theme.colorScheme.onErrorContainer,
-              ),
+              _badge('Reversal', theme.colorScheme.errorContainer, theme.colorScheme.onErrorContainer),
             if (isCancelled)
-              _badge(
-                'Batal',
-                theme.colorScheme.outline,
-                theme.colorScheme.surface,
-              ),
+              _badge('Batal', theme.colorScheme.outline, theme.colorScheme.surface),
           ],
         ),
         subtitle: Text('${orderNumber ?? '-'} • $dateStr'),
@@ -253,7 +350,7 @@ class _PaymentRow extends StatelessWidget {
         color: bg,
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(text, style: TextStyle(fontSize: 10, color: fg)),
+      child: Text(text, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: fg)),
     );
   }
 }
