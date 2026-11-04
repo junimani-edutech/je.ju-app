@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart'; // ✅ TAMBAHAN: Untuk deteksi Web
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -38,6 +39,35 @@ class _SyncStatusScreenState extends ConsumerState<SyncStatusScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ✅ PERBAIKAN: Jika di Web, tampilkan pesan ramah
+    if (kIsWeb) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Status Sinkronisasi')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.cloud_off, size: 64, color: Colors.grey.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  'Fitur Khusus Mobile',
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Sinkronisasi offline hanya tersedia di aplikasi mobile (Android/iOS). Di Web, data Anda selalu terhubung langsung ke server secara real-time.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     final theme = Theme.of(context);
     final biz = ref.watch(currentBusinessProvider).value;
     final network = ref.watch(networkStatusProvider).value;

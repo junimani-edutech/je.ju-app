@@ -334,3 +334,39 @@ Jangan klaim test lulus kalau tidak dijalankan. Jangan klaim build sukses kalau 
 ---
 
 **Selamat melanjutkan!** JeJu sudah sampai di v1.0.0 code-complete. Tinggal build + deploy final, lalu masuk v1.1.
+
+---
+
+## 14. Fase 13–18: UI Revamp, RBAC, Dashboard Interaktif & Deep Link (Nov 2026)
+
+### ✅ Fitur Baru & Perbaikan
+1. **Infrastruktur & Routing (Netlify Fix)**
+   - Menambahkan `web/_redirects` (`/* /index.html 200`) untuk memperbaiki error 404 Netlify.
+   - Mengaktifkan `usePathUrlStrategy()` di `main.dart` (URL tanpa `/#/`).
+   - Redirect login di `app_router.dart` menyimpan parameter `?redirect=...` agar pengguna kembali ke halaman awal setelah login.
+2. **UI/UX Premium**
+   - Merombak total `SignInScreen` dengan desain "Aurora Soft Gradient" (efek blur, kartu melayang, glow button).
+   - Branding baru: **PayNote**, sub-judul *powered by JeJu-App*.
+   - Menyeragamkan navigasi Web (`AppShell`) dan Mobile menjadi 4 tab: Dashboard, Pesanan, Pelanggan, Lainnya.
+3. **Keamanan (RBAC)**
+   - Membuat function SQL `has_business_role` dan menerapkan RLS ketat di tabel `orders`, dll.
+   - Membuat `AppPermission` dan `PermissionGuard` di Flutter.
+   - Menu "Pengaturan" dan "Anggota & Undangan" disembunyikan dari role selain Owner/Admin.
+4. **Dashboard Interaktif**
+   - Kartu ringkasan (Pemasukan, Pengeluaran, Pembayaran, Arus Kas) kini *clickable* (drill-down) dan mengirim filter ke halaman transaksi via URL query params.
+   - Widget `CashFlowChart` baru: Grafik batang *mirrored* (hijau ke atas, merah ke bawah) yang lebih informatif.
+5. **Fitur Pengeluaran**
+   - Form `ExpenseFormSheet` tersambung ke `transactionsProvider` (Supabase).
+   - Dropdown sumber dana (Kas/Bank) dinamis mengambil dari `accountBalancesProvider`.
+6. **Perbaikan Alur Undangan**
+   - `AcceptInviteScreen` kini memiliki form inline (Email + Password).
+   - Pengguna yang diundang bisa langsung mendaftar, login, dan menerima undangan dalam satu klik tanpa harus membuka email konfirmasi (karena `Confirm email` di Supabase sudah dimatikan).
+   - Penanganan error `EMAIL_MISMATCH` dan `email_not_confirmed` yang ramah.
+7. **Penanganan Web vs Mobile**
+   - Fitur "Status Sinkronisasi" hanya muncul di Mobile.
+   - Jika diakses paksa via URL di Web, `SyncStatusScreen` menampilkan pesan "Fitur Khusus Mobile" alih-alih layar merah error SQLite.
+
+### ⚠️ Catatan Penting untuk Fase Selanjutnya (v1.1)
+- Kategori pengeluaran saat ini digabung ke dalam kolom `description` (misal: "Bahan Baku - Beli telur"). Perlu dibuat tabel kategori terpisah di masa depan.
+- Fitur pagination untuk daftar transaksi dan pesanan belum ada (masih memuat semua data).
+

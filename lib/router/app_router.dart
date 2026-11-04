@@ -83,9 +83,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     path: 'payments',
                     builder: (_, _) => const PaymentsScreen(),
                   ),
+                  // ✅ PERBAIKAN: Menangkap query parameter untuk transaksi
                   GoRoute(
                     path: 'transactions',
-                    builder: (_, _) => const TransactionsScreen(),
+                    builder: (context, state) {
+                      return TransactionsScreen(
+                        typeFilter: state.uri.queryParameters['type'],
+                        periodFilter: state.uri.queryParameters['period'],
+                        accountIdFilter: state.uri.queryParameters['account_id'],
+                      );
+                    },
                   ),
                   GoRoute(
                     path: 'transfers',
@@ -119,23 +126,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
     redirect: (context, state) {
-      final isAuthed = ref.read(authStateProvider).value != null;
-      final hasBusiness = ref.read(hasBusinessProvider).value ?? false;
-      final path = state.matchedLocation;
-      final isAuthRoute = path == '/sign-in' || path == '/sign-up';
-      final isPublicRoute = isAuthRoute || path == '/accept-invite';
+      final isLoggedIn = ref.read(authStateProvider).value != null;
+      final isAuthRoute = state.matchedLocation == '/sign-in' ||
+          state.matchedLocation == '/sign-up';
+      final isInviteRoute = state.matchedLocation == '/accept-invite';
 
-      if (!isAuthed) {
-        return isPublicRoute ? null : '/sign-in';
+      if (!isLoggedIn && !isAuthRoute && !isInviteRoute) {
+        final dest = Uri.encodeComponent(state.uri.toString());
+        return '/sign-in?redirect=$dest';
       }
-      if (isAuthRoute) {
-        return hasBusiness ? '/app/dashboard' : '/onboarding';
+      if (isLoggedIn && isAuthRoute) {
+        final target = state.uri.queryParameters['redirect'];
+        if (target != null && target.startsWith('/')) {
+          return Uri.decodeComponent(target);
+        }
+        return '/app/dashboard';
       }
-      if (!hasBusiness && path != '/onboarding' && path != '/accept-invite') {
-        return '/onboarding';
-      }
-      if (hasBusiness && path == '/onboarding') return '/app/dashboard';
-      if (hasBusiness && path == '/home') return '/app/dashboard';
       return null;
     },
   );

@@ -1,14 +1,19 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
+import '../../shared/permissions/app_permission.dart';
+import '../../shared/permissions/permission_provider.dart';
 
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final permissions = ref.watch(currentPermissionsProvider);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Lainnya')),
       body: ListView(
@@ -42,33 +47,42 @@ class MoreScreen extends ConsumerWidget {
             onTap: () => context.go('/app/more/reports'),
           ),
           ListTile(
-            key: const Key('more_members'),
-            leading: const Icon(Icons.people_outline),
-            title: const Text('Anggota & Undangan'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.go('/app/more/members'),
-          ),
-          ListTile(
             key: const Key('more_products'),
             leading: const Icon(Icons.inventory_2_outlined),
             title: const Text('Master Produk'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.go('/app/more/products'),
           ),
-          ListTile(
-            key: const Key('more_sync'),
-            leading: const Icon(Icons.cloud_upload_outlined),
-            title: const Text('Status Sinkronisasi'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.go('/app/more/sync'),
-          ),
-          ListTile(
-            key: const Key('more_settings'),
-            leading: const Icon(Icons.settings_outlined),
-            title: const Text('Pengaturan'),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => context.go('/app/more/settings'),
-          ),
+          
+          // ✅ RBAC: Hanya tampil jika punya izin manageMembers (Owner)
+          if (permissions.contains(AppPermission.manageMembers))
+            ListTile(
+              key: const Key('more_members'),
+              leading: const Icon(Icons.people_outline),
+              title: const Text('Anggota & Undangan'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/app/more/members'),
+            ),
+
+          if (!kIsWeb)
+            ListTile(
+              key: const Key('more_sync'),
+              leading: const Icon(Icons.cloud_upload_outlined),
+              title: const Text('Status Sinkronisasi'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/app/more/sync'),
+            ),
+            
+          // ✅ RBAC: Hanya tampil jika punya izin editBusinessProfile (Owner)
+          if (permissions.contains(AppPermission.editBusinessProfile))
+            ListTile(
+              key: const Key('more_settings'),
+              leading: const Icon(Icons.settings_outlined),
+              title: const Text('Pengaturan'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => context.go('/app/more/settings'),
+            ),
+            
           const Divider(),
           ListTile(
             key: const Key('more_sign_out'),
