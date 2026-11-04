@@ -7,8 +7,6 @@ import '../order.dart';
 import '../orders_providers.dart';
 import 'product_picker.dart';
 
-/// Form buat pesanan. Baris item dinamis. Customer opsional.
-/// Mengembalikan `true` lewat Navigator.pop bila sukses.
 class OrderFormSheet extends ConsumerStatefulWidget {
   const OrderFormSheet({super.key});
 
@@ -55,7 +53,9 @@ class _OrderFormSheetState extends ConsumerState<OrderFormSheet> {
   final _feeCtrl = TextEditingController(text: '0');
   final _shippingCtrl = TextEditingController(text: '0');
   final List<_ItemRow> _items = [_ItemRow()];
+  
   String? _customerId;
+  DateTime? _dueDate; // ✅ State untuk menyimpan tanggal deadline
   bool _loading = false;
   String? _error;
 
@@ -111,6 +111,30 @@ class _OrderFormSheetState extends ConsumerState<OrderFormSheet> {
     }
   }
 
+  // ✅ FUNGSI BARU: Menampilkan Date & Time Picker
+  Future<void> _pickDueDate() async {
+    final date = await showDatePicker(
+      context: context,
+      initialDate: _dueDate ?? DateTime.now(),
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
+      helpText: 'Pilih Tanggal Pengiriman',
+    );
+    if (date != null) {
+      if (!mounted) return;
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay.fromDateTime(_dueDate ?? DateTime.now()),
+        helpText: 'Pilih Waktu Pengiriman',
+      );
+      if (time != null) {
+        setState(() {
+          _dueDate = DateTime(date.year, date.month, date.day, time.hour, time.minute);
+        });
+      }
+    }
+  }
+
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_items.isEmpty) {
@@ -158,6 +182,7 @@ class _OrderFormSheetState extends ConsumerState<OrderFormSheet> {
             discountAmount: _intOrZero(_discountCtrl),
             additionalFeeAmount: _intOrZero(_feeCtrl),
             shippingAmount: _intOrZero(_shippingCtrl),
+            dueDate: _dueDate, // ✅ Kirim dueDate ke provider
           );
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
@@ -250,6 +275,29 @@ class _OrderFormSheetState extends ConsumerState<OrderFormSheet> {
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
+              
+              // ✅ UI BARU: Input Tanggal & Waktu Pengiriman
+              InkWell(
+                onTap: _pickDueDate,
+                borderRadius: BorderRadius.circular(8),
+                child: InputDecorator(
+                  decoration: const InputDecoration(
+                    labelText: 'Tanggal & Waktu Pengiriman (Opsional)',
+                    suffixIcon: Icon(Icons.event),
+                    border: OutlineInputBorder(),
+                  ),
+                  child: Text(
+                    _dueDate == null
+                        ? 'Pilih tanggal dan waktu'
+                        : '${_dueDate!.day.toString().padLeft(2, '0')}/${_dueDate!.month.toString().padLeft(2, '0')}/${_dueDate!.year}  ${_dueDate!.hour.toString().padLeft(2, '0')}:${_dueDate!.minute.toString().padLeft(2, '0')}',
+                    style: TextStyle(
+                      color: _dueDate == null ? Colors.grey : null,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
               _summaryRow('Subtotal', _subtotal),
               _summaryRow('Diskon', -_intOrZero(_discountCtrl)),
               _summaryRow('Biaya tambahan', _intOrZero(_feeCtrl)),
