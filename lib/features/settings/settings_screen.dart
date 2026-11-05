@@ -54,23 +54,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _save(Business b) async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() {
-      _saving = true;
-      _error = null;
-      _success = null;
-    });
+    setState(() { _saving = true; _error = null; _success = null; });
     try {
-      await ref
-          .read(businessServiceProvider)
-          .updateProfile(
-            businessId: b.id,
-            name: _nameCtrl.text.trim(),
-            legalName: _blankToNull(_legalNameCtrl.text),
-            contactEmail: _blankToNull(_emailCtrl.text),
-            contactPhone: _blankToNull(_phoneCtrl.text),
-            address: _blankToNull(_addressCtrl.text),
-            timezone: _timezoneCtrl.text.trim(),
-          );
+      await ref.read(businessServiceProvider).updateProfile(
+        businessId: b.id,
+        name: _nameCtrl.text.trim(),
+        legalName: _blankToNull(_legalNameCtrl.text),
+        contactEmail: _blankToNull(_emailCtrl.text),
+        contactPhone: _blankToNull(_phoneCtrl.text),
+        address: _blankToNull(_addressCtrl.text),
+        timezone: _timezoneCtrl.text.trim(),
+      );
       ref.invalidate(currentBusinessProvider);
       if (mounted) setState(() => _success = 'Profil tersimpan.');
     } catch (e) {
@@ -82,27 +76,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = ref.watch(authStateProvider).value;
+    final theme = Theme.of(context);
     final bizAsync = ref.watch(currentBusinessProvider);
     final member = ref.watch(currentMemberProvider).value;
-    final canEdit =
-        member != null && (member.role == 'owner' || member.role == 'admin');
-    final theme = Theme.of(context);
+    final canEdit = member != null && (member.role == 'owner' || member.role == 'admin');
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Pengaturan')),
+      appBar: AppBar(title: const Text('Pengaturan Toko', style: TextStyle(fontWeight: FontWeight.bold))),
       body: bizAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text('Gagal memuat bisnis: $e'),
-          ),
-        ),
+        error: (e, _) => Center(child: Padding(padding: const EdgeInsets.all(24), child: Text('Gagal memuat bisnis: $e'))),
         data: (biz) {
-          if (biz == null) {
-            return const Center(child: Text('Belum ada bisnis aktif.'));
-          }
+          if (biz == null) return const Center(child: Text('Belum ada bisnis aktif.'));
           _seedFrom(biz);
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -111,123 +96,57 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (user != null)
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.person_outline),
-                      title: Text(user.email),
-                      subtitle: const Text('Akun aktif'),
+                  // Profil Outlet Card
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.withValues(alpha: 0.2))),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Profil Usaha', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _nameCtrl,
+                            enabled: canEdit,
+                            decoration: InputDecoration(labelText: 'Nama usaha *', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                            validator: (v) => (v == null || v.trim().isEmpty) ? 'Nama wajib' : null,
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _phoneCtrl,
+                            enabled: canEdit,
+                            decoration: InputDecoration(labelText: 'Telepon', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                            keyboardType: TextInputType.phone,
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _addressCtrl,
+                            enabled: canEdit,
+                            decoration: InputDecoration(labelText: 'Alamat Lengkap', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), alignLabelWithHint: true),
+                            maxLines: 3,
+                          ),
+                        ],
+                      ),
                     ),
-                  const Divider(),
-                  Text('Profil Usaha', style: theme.textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  TextFormField(
-                    key: const Key('settings_name'),
-                    controller: _nameCtrl,
-                    enabled: canEdit,
-                    decoration: const InputDecoration(
-                      labelText: 'Nama usaha *',
-                    ),
-                    validator: (v) =>
-                        (v == null || v.trim().isEmpty) ? 'Nama wajib' : null,
                   ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    key: const Key('settings_legal_name'),
-                    controller: _legalNameCtrl,
-                    enabled: canEdit,
-                    decoration: const InputDecoration(labelText: 'Nama legal'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    key: const Key('settings_email'),
-                    controller: _emailCtrl,
-                    enabled: canEdit,
-                    decoration: const InputDecoration(
-                      labelText: 'Email kontak',
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    key: const Key('settings_phone'),
-                    controller: _phoneCtrl,
-                    enabled: canEdit,
-                    decoration: const InputDecoration(labelText: 'Telepon'),
-                    keyboardType: TextInputType.phone,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    key: const Key('settings_address'),
-                    controller: _addressCtrl,
-                    enabled: canEdit,
-                    decoration: const InputDecoration(labelText: 'Alamat'),
-                    maxLines: 2,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    key: const Key('settings_timezone'),
-                    controller: _timezoneCtrl,
-                    enabled: canEdit,
-                    decoration: const InputDecoration(
-                      labelText: 'Zona waktu *',
-                      hintText: 'Asia/Jakarta',
-                    ),
-                    validator: (v) => (v == null || v.trim().isEmpty)
-                        ? 'Zona waktu wajib'
-                        : null,
-                  ),
-                  const SizedBox(height: 12),
-                  InputDecorator(
-                    decoration: const InputDecoration(labelText: 'Mata uang'),
-                    child: Text('${biz.currency} (tidak dapat diubah)'),
-                  ),
+                  const SizedBox(height: 16),
                   if (_error != null) ...[
+                    Text(_error!, textAlign: TextAlign.center, style: TextStyle(color: theme.colorScheme.error)),
                     const SizedBox(height: 12),
-                    Text(
-                      _error!,
-                      style: TextStyle(color: theme.colorScheme.error),
-                    ),
                   ],
                   if (_success != null) ...[
+                    Text(_success!, textAlign: TextAlign.center, style: TextStyle(color: Colors.green)),
                     const SizedBox(height: 12),
-                    Text(
-                      _success!,
-                      style: TextStyle(color: theme.colorScheme.primary),
-                    ),
                   ],
-                  if (canEdit) ...[
-                    const SizedBox(height: 16),
-                    FilledButton(
-                      key: const Key('settings_save'),
+                  if (canEdit)
+                    FilledButton.icon(
                       onPressed: _saving ? null : () => _save(biz),
-                      child: _saving
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text('Simpan'),
+                      icon: const Icon(Icons.save),
+                      label: Text(_saving ? 'Menyimpan...' : 'Simpan Profil'),
+                      style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     ),
-                  ],
-                  const Divider(height: 32),
-                  const ListTile(
-                    leading: Icon(Icons.palette_outlined),
-                    title: Text('Tema'),
-                    subtitle: Text(
-                      'Mengikuti sistem; toggle manual di Fase 7+',
-                    ),
-                    enabled: false,
-                  ),
-                  const Divider(),
-                  ListTile(
-                    key: const Key('settings_sign_out'),
-                    leading: const Icon(Icons.logout),
-                    title: const Text('Keluar'),
-                    onTap: () async {
-                      await ref.read(authServiceProvider).signOut();
-                    },
-                  ),
                 ],
               ),
             ),

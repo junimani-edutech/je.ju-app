@@ -7,6 +7,7 @@ import '../products_providers.dart';
 class ProductFormSheet extends ConsumerStatefulWidget {
   const ProductFormSheet({super.key, this.initial});
   final Product? initial;
+
   static Future<bool?> show(BuildContext context, {Product? initial}) {
     return showModalBottomSheet<bool>(
       context: context,
@@ -22,15 +23,9 @@ class ProductFormSheet extends ConsumerStatefulWidget {
 
 class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
   final _formKey = GlobalKey<FormState>();
-  late final _nameCtrl = TextEditingController(
-    text: widget.initial?.name ?? '',
-  );
-  late final _priceCtrl = TextEditingController(
-    text: widget.initial?.price.toString() ?? '',
-  );
-  late final _descCtrl = TextEditingController(
-    text: widget.initial?.description ?? '',
-  );
+  late final _nameCtrl = TextEditingController(text: widget.initial?.name ?? '');
+  late final _priceCtrl = TextEditingController(text: widget.initial?.price.toString() ?? '');
+  late final _descCtrl = TextEditingController(text: widget.initial?.description ?? '');
   bool _loading = false;
   String? _error;
 
@@ -45,33 +40,13 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
   Future<void> _submit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     final price = int.tryParse(_priceCtrl.text.trim()) ?? 0;
-    if (price < 0) {
-      setState(() => _error = 'Harga tidak boleh negatif.');
-      return;
-    }
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() { _loading = true; _error = null; });
     try {
       final notifier = ref.read(productsProvider.notifier);
       if (widget.initial != null) {
-        await notifier.updateProduct(
-          id: widget.initial!.id,
-          name: _nameCtrl.text.trim(),
-          price: price,
-          description: _descCtrl.text.trim().isEmpty
-              ? null
-              : _descCtrl.text.trim(),
-        );
+        await notifier.updateProduct(id: widget.initial!.id, name: _nameCtrl.text.trim(), price: price, description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim());
       } else {
-        await notifier.create(
-          name: _nameCtrl.text.trim(),
-          price: price,
-          description: _descCtrl.text.trim().isEmpty
-              ? null
-              : _descCtrl.text.trim(),
-        );
+        await notifier.create(name: _nameCtrl.text.trim(), price: price, description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim());
       }
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
@@ -85,12 +60,7 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-      ),
+      padding: EdgeInsets.only(left: 20, right: 20, top: 24, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
       child: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -98,21 +68,23 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                widget.initial == null ? 'Tambah Produk' : 'Ubah Produk',
-                style: theme.textTheme.titleLarge,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(widget.initial == null ? 'Tambah Produk' : 'Ubah Produk', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+                ],
               ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(labelText: 'Nama Produk *'),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? 'Wajib diisi' : null,
+                decoration: InputDecoration(labelText: 'Nama Produk / Jasa *', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                validator: (v) => (v == null || v.trim().isEmpty) ? 'Wajib diisi' : null,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _priceCtrl,
-                decoration: const InputDecoration(labelText: 'Harga (Rp) *'),
+                decoration: InputDecoration(labelText: 'Harga (Rp) *', prefixText: 'Rp ', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
                 keyboardType: TextInputType.number,
                 validator: (v) {
                   final n = int.tryParse((v ?? '').trim());
@@ -120,28 +92,21 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
                   return null;
                 },
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               TextFormField(
                 controller: _descCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Deskripsi (Opsional)',
-                ),
-                maxLines: 2,
+                decoration: InputDecoration(labelText: 'Deskripsi (Opsional)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), alignLabelWithHint: true),
+                maxLines: 3,
               ),
               if (_error != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
               ],
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               FilledButton(
                 onPressed: _loading ? null : _submit,
-                child: _loading
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Simpan'),
+                style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                child: _loading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Simpan Produk', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ],
           ),

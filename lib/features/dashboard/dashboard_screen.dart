@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 
 import '../../shared/widgets/business_selector.dart';
 import '../../core/theme/theme_mode_provider.dart';
+import '../../shared/utils/format.dart'; // ✅ Gunakan helper format
 import 'widgets/cash_flow_chart.dart';
 import 'dashboard_providers.dart';
 import '../transactions/presentation/expense_form_sheet.dart'; 
+import '../transactions/presentation/income_form_sheet.dart'; // ✅ Form Pemasukan Baru
 import '../../shared/widgets/offline_banner.dart';
 import '../offline/widgets/sync_queue_badge.dart';
 import '../finance/finance_models.dart';
@@ -25,16 +27,15 @@ class DashboardScreen extends ConsumerWidget {
     
     final summaryAsync = ref.watch(cashFlowSummaryProvider((from: from, to: to)));
     final orderStats = ref.watch(orderStatsProvider);
+    final todayRev = ref.watch(todayRevenueProvider);
+    final lowStock = ref.watch(lowStockItemsProvider);
 
     final summary = summaryAsync.value ?? const CashFlowSummary(income: 0, expense: 0, paymentsNet: 0, net: 0);
 
     return Scaffold(
       appBar: AppBar(
         leadingWidth: 180,
-        leading: const Padding(
-          padding: EdgeInsets.only(left: 8),
-          child: Center(child: BusinessSelectorButton()),
-        ),
+        leading: const Padding(padding: EdgeInsets.only(left: 8), child: Center(child: BusinessSelectorButton())),
         title: const Text('Dashboard'),
         centerTitle: false,
         actions: [
@@ -50,20 +51,41 @@ class DashboardScreen extends ConsumerWidget {
           const SizedBox(width: 8),
         ],
       ),
+      // ✅ FAB DIUBAH: Bisa Pemasukan atau Pengeluaran
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           showModalBottomSheet(
             context: context,
-            isScrollControlled: true,
-            builder: (_) => const ExpenseFormSheet(), 
+            builder: (ctx) => SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.arrow_downward, color: Colors.green),
+                    title: const Text('Catat Pemasukan'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => const IncomeFormSheet());
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.arrow_upward, color: Colors.red),
+                    title: const Text('Catat Pengeluaran'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => const ExpenseFormSheet());
+                    },
+                  ),
+                ],
+              ),
+            ),
           );
         },
         icon: const Icon(Icons.add),
-        label: const Text('Catat Pengeluaran'),
+        label: const Text('Catat'),
       ),
       body: RefreshIndicator(
         onRefresh: () async {
-          // Saldo akun tidak lagi di-refresh di sini karena sudah dihapus dari UI
           ref.invalidate(cashFlowSummaryProvider((from: from, to: to)));
           ref.invalidate(transactionsProvider);
         },
@@ -71,42 +93,75 @@ class DashboardScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           children: [
             if (!kIsWeb) const OfflineBanner(),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             
-            // ✅ 1. STATUS PESANAN (Dipindah ke atas)
+            // ✅ OMSET HARI INI
+            Card(
+              elevation: 0,
+              color: Theme.of(context).colorScheme.primaryContainer,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Omzet Hari Ini', style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onPrimaryContainer)),
+                        const SizedBox(height: 4),
+                        Text(formatIdr(todayRev), style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onPrimaryContainer)),
+                      ],
+                    ),
+                    Icon(Icons.trending_up, size: 40, color: Theme.of(context).colorScheme.onPrimaryContainer.withValues(alpha: 0.5)),
+                  ],
+                ),
+              ),
+            ),
+            
+            // ✅ ALERT STOK MENIPIS
+            if (lowStock.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.red.withValues(alpha: 0.3))),
+                child: Row(
+                  children: [
+                    const Icon(Icons.warning_amber_rounded, color: Colors.red),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text('Stok menipis: ${lowStock.join(', ')}', style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold))),
+                  ],
+                ),
+              ),
+            ],
+
+            const SizedBox(height: 24),
             Text('Status Pesanan Saat Ini', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             _buildOrderStatusGrid(context, orderStats),
-            
             const SizedBox(height: 24),
-            
-            // ✅ 2. KEUANGAN BULAN INI (Dipindah ke bawah status)
             Text('Keuangan bulan ini', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _StatCard(label: 'Pemasukan', value: _fmtIdr(summary.income), icon: Icons.trending_up, color: Theme.of(context).colorScheme.primary, onTap: () => context.go('/app/more/transactions?type=income&period=this_month'))),
+                Expanded(child: _StatCard(label: 'Pemasukan', value: formatIdr(summary.income), icon: Icons.trending_up, color: Theme.of(context).colorScheme.primary, onTap: () => context.go('/app/more/transactions?type=income&period=this_month'))),
                 const SizedBox(width: 12),
-                Expanded(child: _StatCard(label: 'Pengeluaran', value: _fmtIdr(summary.expense), icon: Icons.trending_down, color: Theme.of(context).colorScheme.error, onTap: () => context.go('/app/more/transactions?type=expense&period=this_month'))),
+                Expanded(child: _StatCard(label: 'Pengeluaran', value: formatIdr(summary.expense), icon: Icons.trending_down, color: Theme.of(context).colorScheme.error, onTap: () => context.go('/app/more/transactions?type=expense&period=this_month'))),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _StatCard(label: 'Pembayaran pesanan', value: _fmtIdr(summary.paymentsNet), icon: Icons.payments_outlined, color: Colors.orange, onTap: () => context.go('/app/more/payments'))),
+                Expanded(child: _StatCard(label: 'Pembayaran pesanan', value: formatIdr(summary.paymentsNet), icon: Icons.payments_outlined, color: Colors.orange, onTap: () => context.go('/app/more/payments'))),
                 const SizedBox(width: 12),
-                Expanded(child: _StatCard(label: 'Arus kas bersih', value: _fmtIdr(summary.net), icon: Icons.account_balance_wallet_outlined, color: Colors.green, bold: true, onTap: () => context.go('/app/more/transactions?period=this_month'))),
+                Expanded(child: _StatCard(label: 'Arus kas bersih', value: formatIdr(summary.net), icon: Icons.account_balance_wallet_outlined, color: Colors.green, bold: true, onTap: () => context.go('/app/more/transactions?period=this_month'))),
               ],
             ),
             const SizedBox(height: 24),
-
             Text('Arus Kas (7 Hari Terakhir)', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             const CashFlowChart(),
-            
             const SizedBox(height: 24),
-            
-            // ✅ 3. TRANSAKSI TERBARU (Lebih Lega)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -125,7 +180,6 @@ class DashboardScreen extends ConsumerWidget {
                     child: Column(children: [Icon(Icons.receipt_long, size: 48, color: Colors.grey.shade400), const SizedBox(height: 8), Text('Belum ada transaksi', style: TextStyle(color: Colors.grey.shade600))]),
                   );
                 }
-                // Tampilkan maksimal 5 transaksi terbaru agar lebih lega (sebelumnya 3)
                 final recent = list.take(5).toList();
                 return Column(
                   children: recent.map((tx) => Card(
@@ -134,14 +188,13 @@ class DashboardScreen extends ConsumerWidget {
                     child: ListTile(
                       leading: CircleAvatar(backgroundColor: tx.type == 'income' ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1), child: Icon(tx.type == 'income' ? Icons.arrow_downward : Icons.arrow_upward, color: tx.type == 'income' ? Colors.green : Colors.red)),
                       title: Text(tx.description, maxLines: 1, overflow: TextOverflow.ellipsis),
-                      subtitle: Text('${tx.transactionDate.day}/${tx.transactionDate.month}/${tx.transactionDate.year}'),
-                      trailing: Text('${tx.type == 'income' ? '+' : '-'} ${_fmtIdr(tx.amount)}', style: TextStyle(fontWeight: FontWeight.bold, color: tx.type == 'income' ? Colors.green : Colors.red)),
+                      subtitle: Text(formatDateId(tx.transactionDate)),
+                      trailing: Text('${tx.type == 'income' ? '+' : '-'} ${formatIdr(tx.amount)}', style: TextStyle(fontWeight: FontWeight.bold, color: tx.type == 'income' ? Colors.green : Colors.red)),
                     ),
                   )).toList(),
                 );
               },
             ),
-            // ✅ 4. SALDO AKUN DIHAPUS DARI SINI
             const SizedBox(height: 80), 
           ],
         ),
@@ -153,80 +206,36 @@ class DashboardScreen extends ConsumerWidget {
     return Column(
       children: [
         Row(children: [
-          Expanded(child: _StatusBox(
-            label: 'Antrian Baru', 
-            count: stats['new'] ?? 0, 
-            color: Colors.amber,
-            onTap: () => context.go('/app/orders?status=draft'),
-          )),
+          Expanded(child: _StatusBox(label: 'Antrian Baru', count: stats['new'] ?? 0, color: Colors.amber, onTap: () => context.go('/app/orders?status=draft'))),
           const SizedBox(width: 8),
-          Expanded(child: _StatusBox(
-            label: 'Sedang Proses', 
-            count: stats['process'] ?? 0, 
-            color: Colors.blue,
-            onTap: () => context.go('/app/orders?status=process'),
-          )),
+          Expanded(child: _StatusBox(label: 'Sedang Proses', count: stats['process'] ?? 0, color: Colors.blue, onTap: () => context.go('/app/orders?status=process'))),
         ]),
         const SizedBox(height: 8),
         Row(children: [
-          Expanded(child: _StatusBox(
-            label: 'Siap Diambil', 
-            count: stats['ready'] ?? 0, 
-            color: Colors.green,
-            onTap: () => context.go('/app/orders?status=ready'),
-          )),
+          Expanded(child: _StatusBox(label: 'Siap Diambil', count: stats['ready'] ?? 0, color: Colors.green, onTap: () => context.go('/app/orders?status=ready'))),
           const SizedBox(width: 8),
-          Expanded(child: _StatusBox(
-            label: 'Deadline Hari Ini', 
-            count: stats['deadline'] ?? 0, 
-            color: Colors.orange,
-            onTap: () => context.go('/app/orders?filter=deadline'),
-          )),
+          Expanded(child: _StatusBox(label: 'Deadline Hari Ini', count: stats['deadline'] ?? 0, color: Colors.orange, onTap: () => context.go('/app/orders?filter=deadline'))),
         ]),
         const SizedBox(height: 8),
         Row(children: [
-          Expanded(child: _StatusBox(
-            label: 'Terlambat', 
-            count: stats['late'] ?? 0, 
-            color: Colors.red,
-            onTap: () => context.go('/app/orders?filter=late'),
-          )),
+          Expanded(child: _StatusBox(label: 'Terlambat', count: stats['late'] ?? 0, color: Colors.red, onTap: () => context.go('/app/orders?filter=late'))),
           const SizedBox(width: 8),
           const Expanded(child: SizedBox()),
         ]),
       ],
     );
   }
-
-  String _fmtIdr(int amount) {
-    final negative = amount < 0;
-    final abs = amount.abs();
-    final s = abs.toString();
-    final buf = StringBuffer();
-    for (var i = 0; i < s.length; i++) {
-      if (i > 0 && (s.length - i) % 3 == 0) buf.write('.');
-      buf.write(s[i]);
-    }
-    return '${negative ? '-' : ''}Rp ${buf.toString()}';
-  }
 }
 
 class _StatusBox extends StatelessWidget {
   final String label; final int count; final MaterialColor color; final VoidCallback? onTap;
-  
   const _StatusBox({required this.label, required this.count, required this.color, this.onTap});
-  
   @override
   Widget build(BuildContext context) {
     return Card(
-      elevation: 0,
-      margin: EdgeInsets.zero,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12), 
-        side: BorderSide(color: color.withValues(alpha: 0.3))
-      ),
-      color: color.withValues(alpha: 0.1),
-      clipBehavior: Clip.antiAlias,
+      elevation: 0, margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: color.withValues(alpha: 0.3))),
+      color: color.withValues(alpha: 0.1), clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Padding(
