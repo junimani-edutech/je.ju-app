@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,10 +6,9 @@ import 'package:go_router/go_router.dart';
 import '../../core/providers.dart';
 import '../../shared/widgets/app_states.dart';
 import '../../shared/widgets/skeleton_loader.dart';
-import '../customers/customer.dart';
-import '../customers/customers_providers.dart';
 import 'order.dart';
 import 'orders_providers.dart';
+import 'paginated_orders_providers.dart';
 import 'widgets/order_detail_sheet.dart';
 import 'widgets/order_form_sheet.dart';
 import 'widgets/order_list_tile.dart';
@@ -22,244 +22,251 @@ class OrdersScreen extends ConsumerStatefulWidget {
 
 class _OrdersScreenState extends ConsumerState<OrdersScreen> {
   final _searchCtrl = TextEditingController();
-  String _query = '';
+  Timer? _debounce;
+  String? _localStatusFilter;
+  String? _localSpecialFilter;
+  bool _initialized = false;
 
-  static const _tabs = <String?>[null, 'draft', 'process', 'ready', 'done', 'cancelled'];
-  static const _tabLabels = <String>[
-    'Semua',
-    'Draft Pre-Order',
-    'Sedang Proses',
-    'Siap Antar/Ambil',
-    'Selesai',
-    'Dibatalkan',
+  static const _statusOptions = <({String? code, String label})>[
+    (code: null, label: 'Semua'),
+    (code: 'draft', label: 'Draft'),
+    (code: 'process', label: 'Proses'),
+    (code: 'ready', label: 'Siap'),
+    (code: 'done', label: 'Selesai'),
+    (code: 'cancelled', label: 'Batal'),
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_initialized && mounted) {
+        _initialized = true;
+        final state = GoRouterState.of(context);
+        final statusParam = state.uri.queryParameters['status'];
+        final specialFilter = state.uri.queryParameters['filter'];
+
+        if (specialFilter != null) {
+          _localSpecialFilter = specialFilter;
+          ref.read(paginatedOrdersProvider.notifier).setSpecialFilter(specialFilter);
+        } else if (statusParam != null) {
+          _localStatusFilter = statusParam;
+          ref.read(paginatedOrdersProvider.notifier).setStatusFilter(statusParam);
+        }
+      }
+    });
+  }
+
+  @override
   void dispose() {
+    _debounce?.cancel();
     _searchCtrl.dispose();
     super.dispose();
   }
 
-  List<Order> _applyQuery(List<Order> list, Map<String, String> customerNames) {
-    if (_query.isEmpty) return list;
-    final q = _query.toLowerCase();
-    return list.where((o) {
-      if (o.orderNumber.toLowerCase().contains(q)) return true;
-      if (o.notes != null && o.notes!.toLowerCase().contains(q)) return true;
-      
-      if (o.customerId != null) {
-        final custName = customerNames[o.customerId!];
-        if (custName != null && custName.toLowerCase().contains(q)) return true;
+  void _onSearchChanged(String value) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 400), () {
+      if (mounted) {
+        ref.read(paginatedOrdersProvider.notifier).setSearch(value);
       }
-      return false;
-    }).toList();
+    });
+  }
+
+  void _onStatusSelected(String? code) {
+    setState(() => _localStatusFilter = code);
+    ref.read(paginatedOrdersProvider.notifier).setStatusFilter(code);
+  }
+
+  void _clearSpecialFilter() {
+    setState(() => _localSpecialFilter = null);
+    ref.read(paginatedOrdersProvider.notifier).setSpecialFilter(null);
+    if (mounted) context.go('/app/orders');
+  }
+
+  String get _appBarTitle {
+    if (_localSpecialFilter == 'deadline') return 'Deadline Hari Ini';
+    if (_localSpecialFilter == 'late') return 'Pesanan Terlambat';
+    return 'Pesanan';
   }
 
   @override
   Widget build(BuildContext context) {
-    final statusParam = GoRouterState.of(context).uri.queryParameters['status'];
-    final specialFilter = GoRouterState.of(context).uri.queryParameters['filter']; 
-    
-    final initialIndex = _tabs.indexOf(statusParam).clamp(0, _tabs.length - 1);
-
+    final theme = Theme.of(context);
     final canWrite = ref.watch(currentMemberProvider).value?.canWrite ?? false;
-    final ordersAsync = ref.watch(ordersProvider);
+    final async = ref.watch(paginatedOrdersProvider);
     final statusesAsync = ref.watch(orderStatusesProvider);
-    final customersAsync = ref.watch(activeCustomersProvider); 
-    
     final statusMap = <String, OrderStatus>{
       for (final s in statusesAsync.value ?? <OrderStatus>[]) s.id: s,
     };
 
-    final customerNames = <String, String>{
-      for (final c in customersAsync.value ?? <Customer>[]) c.id: c.name,
-    };
-
-    return DefaultTabController(
-      key: ValueKey('${statusParam}_$specialFilter'), 
-      length: _tabs.length,
-      initialIndex: initialIndex,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(specialFilter == 'deadline' 
-              ? 'Deadline Hari Ini' 
-              : specialFilter == 'late' 
-                  ? 'Pesanan Terlambat' 
-                  : 'Pesanan', style: const TextStyle(fontWeight: FontWeight.bold)),
-          bottom: TabBar(
-            isScrollable: true,
-            tabs: [
-              for (var i = 0; i < _tabs.length; i++)
-                Tab(
-                  key: Key('orders_tab_${_tabs[i] ?? 'all'}'),
-                  text: _tabLabels[i],
-                ),
-            ],
-          ),
-        ),
-        body: Column(
-          children: [
-            if (specialFilter != null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                color: specialFilter == 'late' ? Colors.red.withValues(alpha: 0.1) : Colors.orange.withValues(alpha: 0.1),
-                child: Text(
-                  specialFilter == 'late' 
-                      ? 'Menampilkan pesanan yang melewati tanggal pengiriman.' 
-                      : 'Menampilkan pesanan yang harus dikirim hari ini.',
-                  style: TextStyle(
-                    fontSize: 12, 
-                    fontWeight: FontWeight.bold,
-                    color: specialFilter == 'late' ? Colors.red.shade700 : Colors.orange.shade700
-                  ),
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: TextField(
-                key: const Key('orders_search'),
-                controller: _searchCtrl,
-                decoration: InputDecoration(
-                  hintText: 'Cari nomor pesanan, pelanggan, atau catatan', 
-                  prefixIcon: const Icon(Icons.search),
-                  filled: true,
-                  fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
-                  suffixIcon: _query.isEmpty
-                      ? null
-                      : IconButton(
-                          key: const Key('orders_search_clear'),
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchCtrl.clear();
-                            setState(() => _query = '');
-                          },
-                        ),
-                ),
-                onChanged: (v) => setState(() => _query = v.trim()),
-              ),
-            ),
-            Expanded(
-              child: ordersAsync.when(
-                loading: () => const SkeletonList(),
-                error: (e, _) => ErrorState(
-                  message: 'Gagal memuat pesanan. Periksa koneksi Anda.',
-                  onRetry: () => ref.invalidate(ordersProvider),
-                ),
-                data: (list) {
-                  return TabBarView(
-                    children: [
-                      for (final tabStatus in _tabs)
-                        _buildList(context, list, tabStatus, specialFilter, statusMap, canWrite, customerNames),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-        floatingActionButton: canWrite
-            ? FloatingActionButton.extended(
-                key: const Key('orders_fab'),
-                onPressed: () => OrderFormSheet.show(context),
-                icon: const Icon(Icons.add),
-                label: const Text('Buat'),
-              )
-            : null,
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_appBarTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
-    );
-  }
+      body: Column(
+        children: [
+          // Banner filter khusus (deadline/late)
+          if (_localSpecialFilter != null)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              color: _localSpecialFilter == 'late' 
+                  ? Colors.red.withValues(alpha: 0.1) 
+                  : Colors.orange.withValues(alpha: 0.1),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _localSpecialFilter == 'late'
+                          ? 'Menampilkan pesanan terlambat.'
+                          : 'Menampilkan pesanan yang dikirim hari ini.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: _localSpecialFilter == 'late' ? Colors.red.shade700 : Colors.orange.shade700,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _clearSpecialFilter,
+                    child: const Text('Hapus Filter', style: TextStyle(fontSize: 12)),
+                  ),
+                ],
+              ),
+            ),
 
-  Widget _buildList(
-    BuildContext context,
-    List<Order> all,
-    String? tabStatus,
-    String? specialFilter, 
-    Map<String, OrderStatus> statusMap,
-    bool canWrite,
-    Map<String, String> customerNames,
-  ) {
-    var filtered = tabStatus == null
-        ? all
-        : all.where((o) {
-            if (tabStatus == 'cancelled') return o.isCancelled;
-            if (o.isCancelled) return false;
-            final s = o.orderStatusId != null
-                ? statusMap[o.orderStatusId!]
-                : null;
-            return s?.code == tabStatus;
-          }).toList();
+          // Status Chips (hanya jika tidak ada special filter)
+          if (_localSpecialFilter == null)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: Row(
+                children: _statusOptions.map((opt) {
+                  final isSelected = _localStatusFilter == opt.code;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text(opt.label),
+                      selected: isSelected,
+                      selectedColor: theme.colorScheme.primary,
+                      labelStyle: TextStyle(
+                        color: isSelected ? Colors.white : theme.colorScheme.onSurface,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      ),
+                      onSelected: (_) => _onStatusSelected(opt.code),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
 
-    if (specialFilter != null) {
-      final now = DateTime.now();
-      final today = DateTime(now.year, now.month, now.day);
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: TextField(
+              controller: _searchCtrl,
+              onChanged: _onSearchChanged,
+              decoration: InputDecoration(
+                hintText: 'Cari nomor pesanan, pelanggan, atau catatan',
+                prefixIcon: const Icon(Icons.search),
+                filled: true,
+                fillColor: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                suffixIcon: _searchCtrl.text.isEmpty ? null : IconButton(
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _searchCtrl.clear();
+                    ref.read(paginatedOrdersProvider.notifier).setSearch(null);
+                  },
+                ),
+              ),
+            ),
+          ),
 
-      filtered = filtered.where((o) {
-        if (o.isCancelled) return false;
-        final s = o.orderStatusId != null ? statusMap[o.orderStatusId!] : null;
-        if (s?.code == 'done') return false;
+          // List Pesanan
+          Expanded(
+            child: async.when(
+              loading: () => const SkeletonList(),
+              error: (e, _) => ErrorState(
+                message: 'Gagal memuat pesanan: $e',
+                onRetry: () => ref.read(paginatedOrdersProvider.notifier).refresh(),
+              ),
+              data: (result) {
+                if (result.items.isEmpty) {
+                  return EmptyState(
+                    icon: Icons.receipt_long_outlined,
+                    title: _searchCtrl.text.isNotEmpty ? 'Tidak ada hasil' : 'Belum ada pesanan',
+                    subtitle: _searchCtrl.text.isNotEmpty
+                        ? 'Coba kata kunci lain.'
+                        : 'Pesanan baru akan muncul di sini.',
+                  );
+                }
 
-        if (o.dueDate == null) return false;
-        
-        final due = DateTime(o.dueDate!.year, o.dueDate!.month, o.dueDate!.day);
-        
-        if (specialFilter == 'deadline') {
-          return due.isAtSameMomentAs(today);
-        } else if (specialFilter == 'late') {
-          return due.isBefore(today);
-        }
-        return true;
-      }).toList();
-    }
-
-    final searched = _applyQuery(filtered, customerNames);
-
-    if (searched.isEmpty) {
-      if (_query.isNotEmpty) {
-        return const EmptyState(
-          icon: Icons.search_off,
-          title: 'Tidak ada hasil',
-          subtitle: 'Tidak ada pesanan yang cocok dengan pencarian Anda.',
-        );
-      }
-      final label = tabStatus == null
-          ? 'Belum ada pesanan'
-          : 'Tidak ada pesanan di tab ini';
-      return EmptyState(
-        icon: Icons.receipt_long_outlined,
-        title: label,
-        subtitle: specialFilter != null
-            ? 'Tidak ada pesanan yang sesuai dengan filter waktu ini.'
-            : 'Pesanan baru akan muncul di sini setelah Anda membuatnya.',
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 88),
-      itemCount: searched.length,
-      separatorBuilder: (_, _) => const SizedBox(height: 8),
-      itemBuilder: (_, i) {
-        final o = searched[i];
-        final status = o.orderStatusId != null
-            ? statusMap[o.orderStatusId!]
-            : null;
-        final label = o.isCancelled ? 'Dibatalkan' : (status?.name ?? '—');
-        
-        // ✅ Ambil nama pelanggan dari map
-        final custName = o.customerId != null ? customerNames[o.customerId!] : null;
-
-        return OrderListTile(
-          order: o,
-          statusLabel: label,
-          customerName: custName, // ✅ Kirim ke tile
-          onTap: () => OrderDetailSheet.show(context, order: o),
-        );
-      },
+                return Column(
+                  children: [
+                    // Info Total
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Menampilkan ${result.items.length} dari ${result.total} pesanan',
+                              style: theme.textTheme.bodySmall?.copyWith(color: Colors.grey)),
+                        ],
+                      ),
+                    ),
+                    // List
+                    Expanded(
+                      child: ListView.separated(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 88),
+                        itemCount: result.items.length + (result.hasMore ? 1 : 0),
+                        separatorBuilder: (_, _) => const SizedBox(height: 8),
+                        itemBuilder: (_, i) {
+                          if (i == result.items.length) {
+                            // Load More Button
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              child: Center(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => ref.read(paginatedOrdersProvider.notifier).loadMore(),
+                                  icon: const Icon(Icons.expand_more),
+                                  label: const Text('Muat Lebih Banyak'),
+                                ),
+                              ),
+                            );
+                          }
+                          final o = result.items[i];
+                          final status = o.orderStatusId != null ? statusMap[o.orderStatusId!] : null;
+                          final label = o.isCancelled ? 'Dibatalkan' : (status?.name ?? '—');
+                          return OrderListTile(
+                            order: o,
+                            statusLabel: label,
+                            customerName: o.customerName,
+                            onTap: () => OrderDetailSheet.show(context, order: o),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+      floatingActionButton: canWrite
+          ? FloatingActionButton.extended(
+              key: const Key('orders_fab'),
+              onPressed: () => OrderFormSheet.show(context),
+              icon: const Icon(Icons.add),
+              label: const Text('Buat'),
+            )
+          : null,
     );
   }
 }

@@ -19,6 +19,7 @@ class Order {
     this.dueDate,
     this.notes,
     this.orderStatusId,
+    this.customerName,
   });
 
   final String id;
@@ -36,6 +37,7 @@ class Order {
   final String currency;
   final String? notes;
   final String? orderStatusId;
+  final String? customerName;
   final String paymentStatus;
   final String status;
   final DateTime createdAt;
@@ -61,6 +63,7 @@ class Order {
     currency: m['currency'] as String,
     notes: m['notes'] as String?,
     orderStatusId: m['order_status_id'] as String?,
+    customerName: m['customer_name'] as String?,
     paymentStatus: m['payment_status'] as String,
     status: m['status'] as String,
     createdAt: DateTime.parse(m['created_at'] as String),

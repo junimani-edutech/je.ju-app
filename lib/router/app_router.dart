@@ -22,6 +22,7 @@ import '../features/onboarding/onboarding_screen.dart';
 import '../features/orders/orders_screen.dart';
 import '../features/payments/payments_screen.dart';
 import '../features/reports/reports_screen.dart';
+import '../features/reports/staff_report_screen.dart';
 import '../features/reports/product_report_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../shared/permissions/app_permission.dart';
@@ -66,6 +67,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   ),
                   GoRoute(path: 'transfers', builder: (_, _) => const TransfersScreen()),
                   GoRoute(path: 'reports', builder: (_, _) => const ReportsScreen()),
+                  GoRoute(path: 'staff-report', builder: (_, _) => const StaffReportScreen()),
                   GoRoute(path: 'product-report', builder: (_, _) => const ProductReportScreen()),
                   
                   // ✅ RBAC Guard untuk Anggota

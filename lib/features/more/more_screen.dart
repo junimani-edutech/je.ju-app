@@ -138,6 +138,16 @@ class MoreScreen extends ConsumerWidget {
             subtitle: 'Analitik dan ringkasan bisnis',
             onTap: () => context.go('/app/more/reports'),
           ),
+
+          _buildMenuItem(
+            context,
+            icon: Icons.assignment_ind_outlined,
+            iconBgColor: Colors.lightBlue.withValues(alpha: 0.1),
+            iconColor: Colors.lightBlue,
+            title: 'Laporan Per Kasir',
+            subtitle: 'Performa staf & shift',
+            onTap: () => context.go('/app/more/staff-report'),
+          ),
           // ✅ TAMBAHAN: Menu Produk Terlaris
           _buildMenuItem(
             context,
