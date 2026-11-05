@@ -36,6 +36,7 @@ class OfflineProductsService implements ProductsService {
     'name': p.name,
     'price': p.price,
     'description': p.description,
+    'category': p.category, // ✅ Tambahan
     'status': p.status,
     'created_at': p.createdAt.toIso8601String(),
     'updated_at': p.updatedAt.toIso8601String(),
@@ -65,6 +66,7 @@ class OfflineProductsService implements ProductsService {
     required String name,
     required int price,
     String? description,
+    String? category,
   }) async {
     if (_isOnline()) {
       try {
@@ -73,6 +75,7 @@ class OfflineProductsService implements ProductsService {
           name: name,
           price: price,
           description: description,
+          category: category,
         );
         await _local.upsert(r);
         return r;
@@ -85,6 +88,7 @@ class OfflineProductsService implements ProductsService {
       name: name,
       price: price,
       description: description,
+      category: category ?? 'Umum',
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -107,6 +111,7 @@ class OfflineProductsService implements ProductsService {
     required String name,
     required int price,
     String? description,
+    String? category,
   }) async {
     if (_isOnline()) {
       try {
@@ -115,6 +120,7 @@ class OfflineProductsService implements ProductsService {
           name: name,
           price: price,
           description: description,
+          category: category,
         );
         await _local.upsert(r);
         return r;
@@ -129,6 +135,7 @@ class OfflineProductsService implements ProductsService {
       name: name,
       price: price,
       description: description,
+      category: category ?? existing.category,
       status: existing.status,
       createdAt: existing.createdAt,
       updatedAt: now,
@@ -155,6 +162,7 @@ class OfflineProductsService implements ProductsService {
       name: existing.name,
       price: existing.price,
       description: existing.description,
+      category: existing.category, // ✅ Pertahankan kategori
       status: newStatus,
       createdAt: existing.createdAt,
       updatedAt: now,

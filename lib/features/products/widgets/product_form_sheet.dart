@@ -26,8 +26,19 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
   late final _nameCtrl = TextEditingController(text: widget.initial?.name ?? '');
   late final _priceCtrl = TextEditingController(text: widget.initial?.price.toString() ?? '');
   late final _descCtrl = TextEditingController(text: widget.initial?.description ?? '');
+  String _selectedCategory = 'Umum';
   bool _loading = false;
   String? _error;
+
+  final List<String> _categories = ['Umum', 'Cuci Kering', 'Cuci Setrika', 'Setrika', 'Bed Cover', 'Sepatu', 'Lainnya'];
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initial?.category != null) {
+      _selectedCategory = widget.initial!.category!;
+    }
+  }
 
   @override
   void dispose() {
@@ -44,9 +55,20 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
     try {
       final notifier = ref.read(productsProvider.notifier);
       if (widget.initial != null) {
-        await notifier.updateProduct(id: widget.initial!.id, name: _nameCtrl.text.trim(), price: price, description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim());
+        await notifier.updateProduct(
+          id: widget.initial!.id, 
+          name: _nameCtrl.text.trim(), 
+          price: price, 
+          description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+          category: _selectedCategory,
+        );
       } else {
-        await notifier.create(name: _nameCtrl.text.trim(), price: price, description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim());
+        await notifier.create(
+          name: _nameCtrl.text.trim(), 
+          price: price, 
+          description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+          category: _selectedCategory,
+        );
       }
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
@@ -76,12 +98,34 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
                 ],
               ),
               const SizedBox(height: 16),
+              
+              // Nama Produk
               TextFormField(
                 controller: _nameCtrl,
                 decoration: InputDecoration(labelText: 'Nama Produk / Jasa *', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
                 validator: (v) => (v == null || v.trim().isEmpty) ? 'Wajib diisi' : null,
               ),
               const SizedBox(height: 16),
+              
+              // Kategori (Chips)
+              Text('Kategori *', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8, runSpacing: 8,
+                children: _categories.map((c) {
+                  final isSelected = _selectedCategory == c;
+                  return ChoiceChip(
+                    label: Text(c),
+                    selected: isSelected,
+                    selectedColor: theme.colorScheme.primary,
+                    labelStyle: TextStyle(color: isSelected ? Colors.white : theme.colorScheme.onSurface, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+                    onSelected: (v) => setState(() => _selectedCategory = c),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              
+              // Harga
               TextFormField(
                 controller: _priceCtrl,
                 decoration: InputDecoration(labelText: 'Harga (Rp) *', prefixText: 'Rp ', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
@@ -93,6 +137,8 @@ class _ProductFormSheetState extends ConsumerState<ProductFormSheet> {
                 },
               ),
               const SizedBox(height: 16),
+              
+              // Deskripsi
               TextFormField(
                 controller: _descCtrl,
                 decoration: InputDecoration(labelText: 'Deskripsi (Opsional)', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), alignLabelWithHint: true),

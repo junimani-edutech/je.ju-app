@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import '../models/business.dart';
 import '../models/business_member.dart';
 
@@ -22,4 +23,7 @@ abstract class BusinessService {
     String? address,
     String? timezone,
   });
+
+  Future<String> uploadLogo(String businessId, Uint8List bytes, String fileName);
+  Future<void> updateReceiptFooter(String businessId, String? footer);
 }

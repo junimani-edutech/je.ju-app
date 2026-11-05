@@ -1,3 +1,4 @@
+import 'package:http/http.dart' as http;
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -11,11 +12,10 @@ class InvoiceService {
     Order order,
     List<OrderItem> items,
     Business business,
-    Customer? customer, // ✅ Tambahan data pelanggan
+    Customer? customer,
   ) async {
     final pdf = pw.Document();
 
-    // Format Rupiah
     String fmtIdr(int amount) {
       final s = amount.toString();
       final buf = StringBuffer();
@@ -24,6 +24,16 @@ class InvoiceService {
         buf.write(s[i]);
       }
       return 'Rp $buf';
+    }
+
+    pw.ImageProvider? logoProvider;
+    if (business.logoUrl != null) {
+      try {
+        final response = await http.get(Uri.parse(business.logoUrl!));
+        if (response.statusCode == 200) {
+          logoProvider = pw.MemoryImage(response.bodyBytes);
+        }
+      } catch (_) {}
     }
 
     pdf.addPage(
@@ -37,18 +47,30 @@ class InvoiceService {
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               crossAxisAlignment: pw.CrossAxisAlignment.start,
               children: [
-                pw.Column(
+                pw.Row(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text(
-                      business.name,
-                      style: pw.TextStyle(
-                        fontSize: 24,
-                        fontWeight: pw.FontWeight.bold,
+                    if (logoProvider != null)
+                      pw.Container(
+                        width: 60,
+                        height: 60,
+                        margin: const pw.EdgeInsets.only(right: 16),
+                        child: pw.Image(logoProvider),
                       ),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        pw.Text(
+                          business.name,
+                          style: pw.TextStyle(
+                            fontSize: 24,
+                            fontWeight: pw.FontWeight.bold,
+                          ),
+                        ),
+                        if (business.address != null) pw.Text(business.address!),
+                        if (business.contactPhone != null) pw.Text('Telp: ${business.contactPhone}'),
+                      ],
                     ),
-                    if (business.address != null) pw.Text(business.address!),
-                    if (business.contactPhone != null) pw.Text('Telp: ${business.contactPhone}'),
                   ],
                 ),
                 pw.Column(
@@ -141,8 +163,9 @@ class InvoiceService {
             // FOOTER
             pw.Center(
               child: pw.Text(
-                'Terima kasih atas kepercayaan Anda!',
+                business.receiptFooter ?? 'Terima kasih atas kepercayaan Anda!',
                 style: pw.TextStyle(fontStyle: pw.FontStyle.italic, color: PdfColors.grey600),
+                textAlign: pw.TextAlign.center,
               ),
             ),
           ];

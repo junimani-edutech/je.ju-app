@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/business.dart';
@@ -32,7 +33,7 @@ class SupabaseBusinessService implements BusinessService {
         .from('businesses')
         .select(
           'id, name, legal_name, contact_email, contact_phone, address, '
-          'timezone, currency',
+          'timezone, currency, logo_url, receipt_footer',
         )
         .order('created_at');
     return (rows as List)
@@ -76,5 +77,20 @@ class SupabaseBusinessService implements BusinessService {
         'p_timezone': timezone,
       },
     );
+  }
+
+  @override
+  Future<String> uploadLogo(String businessId, Uint8List bytes, String fileName) async {
+    final path = '$businessId/${DateTime.now().millisecondsSinceEpoch}_$fileName';
+    await _client.storage.from('business-logos').uploadBinary(path, bytes);
+    final url = _client.storage.from('business-logos').getPublicUrl(path);
+    
+    await _client.from('businesses').update({'logo_url': url}).eq('id', businessId);
+    return url;
+  }
+
+  @override
+  Future<void> updateReceiptFooter(String businessId, String? footer) async {
+    await _client.from('businesses').update({'receipt_footer': footer}).eq('id', businessId);
   }
 }

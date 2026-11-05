@@ -110,6 +110,16 @@ class MoreScreen extends ConsumerWidget {
             subtitle: 'Riwayat pemasukan & pengeluaran',
             onTap: () => context.go('/app/more/transactions'),
           ),
+
+          _buildMenuItem(
+            context,
+            icon: Icons.notifications_active_outlined,
+            iconBgColor: Colors.red.withValues(alpha: 0.1),
+            iconColor: Colors.red.shade700,
+            title: 'Tagihan Belum Lunas',
+            subtitle: 'Pengingat piutang pelanggan',
+            onTap: () => context.go('/app/more/ar-reminder'),
+          ),
           _buildMenuItem(
             context,
             icon: Icons.swap_horiz,
@@ -128,6 +138,16 @@ class MoreScreen extends ConsumerWidget {
             subtitle: 'Analitik dan ringkasan bisnis',
             onTap: () => context.go('/app/more/reports'),
           ),
+          // ✅ TAMBAHAN: Menu Produk Terlaris
+          _buildMenuItem(
+            context,
+            icon: Icons.leaderboard_outlined,
+            iconBgColor: Colors.pink.withValues(alpha: 0.1),
+            iconColor: Colors.pink,
+            title: 'Produk Terlaris',
+            subtitle: 'Analisis barang paling laku',
+            onTap: () => context.go('/app/more/product-report'),
+          ),
           _buildMenuItem(
             context,
             icon: Icons.inventory_2_outlined,
@@ -137,7 +157,6 @@ class MoreScreen extends ConsumerWidget {
             subtitle: 'Daftar barang & jasa yang dijual',
             onTap: () => context.go('/app/more/products'),
           ),
-          // ✅ TAMBAHAN: Menu Inventaris Stok
           _buildMenuItem(
             context,
             icon: Icons.inventory,
@@ -147,6 +166,28 @@ class MoreScreen extends ConsumerWidget {
             subtitle: 'Pantau stok deterjen, plastik, dll',
             onTap: () => context.go('/app/more/inventory'),
           ),
+
+          if (permissions.contains(AppPermission.manageMembers))
+            _buildMenuItem(
+              context,
+              icon: Icons.history,
+              iconBgColor: Colors.grey.withValues(alpha: 0.1),
+              iconColor: Colors.grey.shade700,
+              title: 'Log Aktivitas',
+              subtitle: 'Riwayat perubahan data oleh staf',
+              onTap: () => context.go('/app/more/audit-log'),
+            ),
+
+          if (permissions.contains(AppPermission.editBusinessProfile))
+            _buildMenuItem(
+              context,
+              icon: Icons.backup_outlined,
+              iconBgColor: Colors.deepPurple.withValues(alpha: 0.1),
+              iconColor: Colors.deepPurple,
+              title: 'Backup Data',
+              subtitle: 'Cadangkan seluruh data bisnis',
+              onTap: () => context.go('/app/more/backup'),
+            ),
 
           if (permissions.contains(AppPermission.manageMembers))
             _buildMenuItem(
@@ -185,7 +226,7 @@ class MoreScreen extends ConsumerWidget {
           const SizedBox(height: 32),
           Center(
             child: Text(
-              'PayNote v1.0.2',
+              'PayNote v1.1.0',
               style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
             ),
           ),

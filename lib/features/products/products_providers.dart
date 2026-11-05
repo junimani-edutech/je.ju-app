@@ -35,6 +35,7 @@ class ProductsNotifier extends AsyncNotifier<List<Product>> {
     required String name,
     required int price,
     String? description,
+    String? category,
   }) async {
     final biz = await ref.read(currentBusinessProvider.future);
     if (biz == null) throw StateError('Tidak ada bisnis aktif');
@@ -45,6 +46,7 @@ class ProductsNotifier extends AsyncNotifier<List<Product>> {
           name: name,
           price: price,
           description: description,
+          category: category,
         );
     await _reload();
   }
@@ -54,10 +56,11 @@ class ProductsNotifier extends AsyncNotifier<List<Product>> {
     required String name,
     required int price,
     String? description,
+    String? category,
   }) async {
     await ref
         .read(productsServiceProvider)
-        .update(id: id, name: name, price: price, description: description);
+        .update(id: id, name: name, price: price, description: description, category: category);
     await _reload();
   }
 

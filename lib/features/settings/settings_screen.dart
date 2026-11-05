@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,9 +20,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _phoneCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
   final _timezoneCtrl = TextEditingController();
+  final _footerCtrl = TextEditingController();
 
   bool _seeded = false;
   bool _saving = false;
+  bool _uploadingLogo = false;
   String? _error;
   String? _success;
 
@@ -33,6 +36,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _phoneCtrl.dispose();
     _addressCtrl.dispose();
     _timezoneCtrl.dispose();
+    _footerCtrl.dispose();
     super.dispose();
   }
 
@@ -45,6 +49,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     _phoneCtrl.text = b.contactPhone ?? '';
     _addressCtrl.text = b.address ?? '';
     _timezoneCtrl.text = b.timezone;
+    _footerCtrl.text = b.receiptFooter ?? 'Terima kasih atas kepercayaan Anda!';
   }
 
   String? _blankToNull(String s) {
@@ -52,20 +57,52 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     return t.isEmpty ? null : t;
   }
 
+  Future<void> _pickLogo(Business biz) async {
+    final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
+    if (result != null && result.files.single.bytes != null) {
+      setState(() => _uploadingLogo = true);
+      try {
+        await ref.read(businessServiceProvider).uploadLogo(
+          biz.id, 
+          result.files.single.bytes!, 
+          result.files.single.name,
+        );
+        ref.invalidate(currentBusinessProvider);
+        _seeded = false; // force re-seed to show new logo
+        if (mounted) setState(() => _success = 'Logo berhasil diperbarui.');
+      } catch (e) {
+        if (mounted) setState(() => _error = 'Gagal upload logo: $e');
+      } finally {
+        if (mounted) setState(() => _uploadingLogo = false);
+      }
+    }
+  }
+
   Future<void> _save(Business b) async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() { _saving = true; _error = null; _success = null; });
+    setState(() {
+      _saving = true;
+      _error = null;
+      _success = null;
+    });
     try {
-      await ref.read(businessServiceProvider).updateProfile(
-        businessId: b.id,
-        name: _nameCtrl.text.trim(),
-        legalName: _blankToNull(_legalNameCtrl.text),
-        contactEmail: _blankToNull(_emailCtrl.text),
-        contactPhone: _blankToNull(_phoneCtrl.text),
-        address: _blankToNull(_addressCtrl.text),
-        timezone: _timezoneCtrl.text.trim(),
-      );
+      await ref
+          .read(businessServiceProvider)
+          .updateProfile(
+            businessId: b.id,
+            name: _nameCtrl.text.trim(),
+            legalName: _blankToNull(_legalNameCtrl.text),
+            contactEmail: _blankToNull(_emailCtrl.text),
+            contactPhone: _blankToNull(_phoneCtrl.text),
+            address: _blankToNull(_addressCtrl.text),
+            timezone: _timezoneCtrl.text.trim(),
+          );
+      await ref
+          .read(businessServiceProvider)
+          .updateReceiptFooter(b.id, _blankToNull(_footerCtrl.text));
+      
       ref.invalidate(currentBusinessProvider);
+      _seeded = false;
       if (mounted) setState(() => _success = 'Profil tersimpan.');
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
@@ -96,7 +133,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Profil Outlet Card
                   Card(
                     elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: Colors.grey.withValues(alpha: 0.2))),
@@ -106,6 +142,30 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text('Profil Usaha', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              if (biz.logoUrl != null)
+                                CircleAvatar(
+                                  radius: 30,
+                                  backgroundImage: NetworkImage(biz.logoUrl!),
+                                  backgroundColor: Colors.grey.shade200,
+                                )
+                              else
+                                CircleAvatar(
+                                  radius: 30,
+                                  backgroundColor: Colors.grey.shade200,
+                                  child: const Icon(Icons.storefront, color: Colors.grey),
+                                ),
+                              const SizedBox(width: 16),
+                              if (canEdit)
+                                OutlinedButton.icon(
+                                  onPressed: _uploadingLogo ? null : () => _pickLogo(biz),
+                                  icon: _uploadingLogo ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.upload),
+                                  label: const Text('Pilih Logo'),
+                                ),
+                            ],
+                          ),
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: _nameCtrl,
@@ -126,6 +186,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                             enabled: canEdit,
                             decoration: InputDecoration(labelText: 'Alamat Lengkap', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), alignLabelWithHint: true),
                             maxLines: 3,
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: _footerCtrl,
+                            enabled: canEdit,
+                            decoration: InputDecoration(labelText: 'Footer Struk / Nota', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)), alignLabelWithHint: true, hintText: 'Terima kasih atas kepercayaan Anda!'),
+                            maxLines: 2,
                           ),
                         ],
                       ),

@@ -9,7 +9,10 @@ import '../features/customers/customers_screen.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/finance/transactions_screen.dart';
 import '../features/finance/transfers_screen.dart';
-import '../features/inventory/inventory_screen.dart'; // ✅ Import Inventaris
+import '../features/inventory/inventory_screen.dart';
+import '../features/orders/ar_reminder_screen.dart';
+import '../features/backup/backup_screen.dart';
+import '../features/audit/audit_log_screen.dart'; // ✅ Import Inventaris
 import '../features/members/accept_invite_screen.dart';
 import '../features/members/members_screen.dart';
 import '../features/offline/sync_status_screen.dart';
@@ -19,6 +22,7 @@ import '../features/onboarding/onboarding_screen.dart';
 import '../features/orders/orders_screen.dart';
 import '../features/payments/payments_screen.dart';
 import '../features/reports/reports_screen.dart';
+import '../features/reports/product_report_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../shared/permissions/app_permission.dart';
 import '../shared/permissions/permission_provider.dart';
@@ -62,6 +66,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   ),
                   GoRoute(path: 'transfers', builder: (_, _) => const TransfersScreen()),
                   GoRoute(path: 'reports', builder: (_, _) => const ReportsScreen()),
+                  GoRoute(path: 'product-report', builder: (_, _) => const ProductReportScreen()),
                   
                   // ✅ RBAC Guard untuk Anggota
                   GoRoute(
@@ -77,6 +82,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   
                   // ✅ ROUTE INVENTARIS BARU
                   GoRoute(path: 'inventory', builder: (_, _) => const InventoryScreen()),
+                  GoRoute(path: 'ar-reminder', builder: (_, _) => const ArReminderScreen()),
+                  GoRoute(path: 'backup', builder: (_, _) => const BackupScreen()),
+                  GoRoute(path: 'audit-log', builder: (_, _) => const AuditLogScreen()),
                   
                   GoRoute(
                     path: 'sync',

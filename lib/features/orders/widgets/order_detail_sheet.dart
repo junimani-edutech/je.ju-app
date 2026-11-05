@@ -98,6 +98,66 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
     }
   }
 
+  Future<void> _repeatOrder() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Pesan Ulang?'),
+        content: Text(
+          'Buat pesanan baru dengan item yang sama seperti pesanan ${widget.order.orderNumber}? '
+          'Anda bisa mengubahnya setelahnya.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Batal'),
+          ),
+          FilledButton(
+            key: const Key('order_repeat_confirm'),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Pesan Ulang'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      final items = await _itemsFuture;
+      if (items.isEmpty) {
+        _showError('Tidak ada item untuk dipesan ulang.');
+        return;
+      }
+
+      final inputs = items
+          .map((it) => OrderItemInput(
+                description: it.description,
+                quantity: it.quantity,
+                unitPrice: it.unitPrice,
+              ))
+          .toList();
+
+      await ref.read(ordersProvider.notifier).create(
+            items: inputs,
+            customerId: widget.order.customerId,
+            notes: widget.order.notes,
+          );
+
+      if (mounted) {
+        Navigator.of(context).pop();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Pesanan baru berhasil dibuat dari pesanan ini!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      _showError('Gagal membuat pesanan ulang: $e');
+    }
+  }
+
   Future<void> _changeStatus() async {
     final statuses = ref.read(orderStatusesProvider).value ?? const <OrderStatus>[];
     final selectable = statuses.where((s) => s.code != 'cancelled').toList();
@@ -318,7 +378,20 @@ class _OrderDetailSheetState extends ConsumerState<OrderDetailSheet> {
                 ),
               ],
             ),
-            const SizedBox(height: 8),
+            if (canWrite && !liveOrder.isCancelled) ...[
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                key: const Key('order_detail_repeat'),
+                onPressed: _repeatOrder,
+                icon: const Icon(Icons.replay),
+                label: const Text('Pesan Lagi'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.blue.shade700,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
             if (canWrite && !liveOrder.isCancelled) ...[
               FilledButton.icon(
                 key: const Key('order_detail_change_status'),

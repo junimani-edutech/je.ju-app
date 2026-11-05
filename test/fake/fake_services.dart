@@ -156,6 +156,14 @@ class FakeBusinessService implements BusinessService {
       );
     }
   }
+
+  @override
+  Future<String> uploadLogo(String businessId, Uint8List bytes, String fileName) async {
+    return 'https://fake-url.com/logo.png';
+  }
+
+  @override
+  Future<void> updateReceiptFooter(String businessId, String? footer) async {}
 }
 
 class FakeCustomersService implements CustomersService {

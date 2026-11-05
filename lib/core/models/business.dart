@@ -8,6 +8,8 @@ class Business {
     this.contactEmail,
     this.contactPhone,
     this.address,
+    this.logoUrl,
+    this.receiptFooter,
   });
 
   final String id;
@@ -18,6 +20,8 @@ class Business {
   final String? contactEmail;
   final String? contactPhone;
   final String? address;
+  final String? logoUrl;
+  final String? receiptFooter;
 
   factory Business.fromMap(Map<String, dynamic> m) => Business(
     id: m['id'] as String,
@@ -28,5 +32,7 @@ class Business {
     contactEmail: m['contact_email'] as String?,
     contactPhone: m['contact_phone'] as String?,
     address: m['address'] as String?,
+    logoUrl: m['logo_url'] as String?,
+    receiptFooter: m['receipt_footer'] as String?,
   );
 }

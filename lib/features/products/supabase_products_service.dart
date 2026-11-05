@@ -26,6 +26,7 @@ class SupabaseProductsService implements ProductsService {
     required String name,
     required int price,
     String? description,
+    String? category,
   }) async {
     final row = await _client
         .from('products')
@@ -34,6 +35,7 @@ class SupabaseProductsService implements ProductsService {
           'name': name,
           'price': price,
           'description': description,
+          'category': category ?? 'Umum',
         })
         .select()
         .single();
@@ -46,10 +48,16 @@ class SupabaseProductsService implements ProductsService {
     required String name,
     required int price,
     String? description,
+    String? category,
   }) async {
     final row = await _client
         .from('products')
-        .update({'name': name, 'price': price, 'description': description})
+        .update({
+          'name': name, 
+          'price': price, 
+          'description': description,
+          'category': category ?? 'Umum',
+        })
         .eq('id', id)
         .select()
         .single();
@@ -77,6 +85,7 @@ class SupabaseProductsService implements ProductsService {
         'p_price': p.price,
         'p_description': p.description,
         'p_status': p.status,
+        'p_category': p.category ?? 'Umum',
       },
     );
   }

@@ -8,7 +8,9 @@ class Product {
     required this.createdAt,
     required this.updatedAt,
     this.description,
+    this.category,
   });
+  
   final String id;
   final String businessId;
   final String name;
@@ -17,6 +19,7 @@ class Product {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String? description;
+  final String? category; // ✅ Tambahan Kategori
 
   bool get isActive => status == 'active';
 
@@ -27,6 +30,7 @@ class Product {
     price: (m['price'] as num).toInt(),
     status: m['status'] as String,
     description: m['description'] as String?,
+    category: m['category'] as String?,
     createdAt: DateTime.parse(m['created_at'] as String),
     updatedAt: DateTime.parse(m['updated_at'] as String),
   );
