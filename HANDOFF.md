@@ -378,3 +378,125 @@ Jangan klaim test lulus kalau tidak dijalankan. Jangan klaim build sukses kalau 
 2. **WhatsApp Reminder:** Tombol "Kirim WA" di Detail Pesanan membuka aplikasi WhatsApp dengan pesan status pesanan otomatis.
 3. **Modul Inventaris:** Halaman baru "Inventaris Stok" (Menu Lainnya) untuk memantau bahan baku. Terintegrasi dengan tabel `inventory_items` di Supabase. Memiliki indikator warna merah jika stok di bawah minimum.
 4. **PDF Laporan:** Halaman Laporan memiliki tombol "Cetak PDF" yang menghasilkan laporan keuangan rapi (Ringkasan Pesanan, Arus Kas, Saldo Akun).
+
+---
+
+## 17. FASE v1.1.0 — VISI, TUJUAN INTI & FITUR BARU (Nov 2026)
+
+### 🎯 17.1 Tujuan Inti PayNote (North Star)
+
+PayNote (JeJu-App) dibangun untuk memecahkan **3 masalah utama UMKM Indonesia**, yang diringkas menjadi **3 Pilar Utama**:
+
+| Pilar | Deskripsi | Fitur Penyangga |
+|---|---|---|
+| **1. PENCATATAN** | Mencatat setiap transaksi bisnis dengan cepat dan akurat (pesanan, pembayaran, pemasukan, pengeluaran, transfer antar akun). | Orders, Payments, Transactions, Transfers, Categories, Repeat Order, Product Categories, Income Form |
+| **2. REKAPAN** | Menyediakan laporan keuangan yang jelas dan siap pakai (laba rugi, arus kas, produk terlaris, performa kasir) untuk pengambilan keputusan. | Dashboard, Reports (PDF/CSV/XLSX), Top Products, Staff Report, Cash Flow Chart, Today Revenue, Account Balances |
+| **3. PENGINGAT** | Mengingatkan pemilik usaha tentang hal-hal penting (deadline pesanan, stok menipis, piutang belum lunas, aktivitas staf) agar bisnis tidak *lost track*. | Order Stats Grid, Low Stock Alert, AR Reminder (WA), Audit Log, WhatsApp Reminder, Offline Sync |
+
+**Filosofi Desain:**
+- **Offline-First:** Tetap berfungsi tanpa internet (mobile).
+- **Premium UI:** Desain "Aurora Soft Gradient" agar terasa mahal dan profesional.
+- **RBAC (Role-Based Access Control):** Setiap role (Owner/Admin/Cashier/Order Staff/Viewer) hanya bisa mengakses fitur yang relevan.
+- **Audit Trail:** Semua aksi sensitif tercatat di `audit_logs` untuk akuntabilitas.
+
+**Yang BUKAN Tujuan PayNote (Out of Scope v1.x):**
+- ❌ Aplikasi E-Commerce / Marketplace
+- ❌ CRM Tingkat Lanjut (Loyalty Point, Membership Tier — ditunda ke v2.0+)
+- ❌ Payment Gateway / QRIS terintegrasi (ditunda, butuh legalitas & biaya)
+- ❌ Aplikasi POS dengan Barcode/Printer Thermal (bisa dipertimbangkan v2.0)
+- ❌ Multi-Currency (IDR saja)
+
+---
+
+### 🚀 17.2 Fitur Baru di v1.1.0
+
+#### A. Modul Analitik & Laporan
+1. **Produk Terlaris** (`/app/more/product-report`):
+   - RPC `get_top_products` untuk agregasi.
+   - Grafik batang *Top 5* + tabel rincian (Qty & Revenue).
+2. **Laporan Per Kasir** (`/app/more/staff-report`):
+   - RPC `get_sales_by_staff` untuk performa staf.
+   - Grafik batang *Top 5 Kasir* + tabel (jumlah pesanan, omzet, jumlah dibayar).
+   - Filter "Bulan Ini / Bulan Lalu".
+3. **Laporan PDF dengan Logo**:
+   - Tombol "Cetak PDF" di halaman Laporan.
+   - `ReportPdfService.printReport()` menghasilkan PDF A4 rapi.
+
+#### B. Modul Keamanan & Data
+4. **Audit Log Viewer** (`/app/more/audit-log`):
+   - Menampilkan 100 log terakhir dari tabel `audit_logs`.
+   - Detail payload di *ExpansionTile*.
+   - Hanya muncul untuk Owner/Admin.
+5. **Backup Data JSON** (`/app/more/backup`):
+   - RPC `get_business_backup` mengambil semua data 1 bisnis (10 tabel) dalam 1 *request*.
+   - Hasil diunduh sebagai `.json` rapi.
+   - (Belum ada Restore — ditunda ke v1.2).
+
+#### C. Modul Operasional & UX
+6. **Repeat Order (1-Klik)**:
+   - Tombol "Pesan Lagi" di Detail Pesanan lama.
+   - Otomatis membuat pesanan baru dengan item identik.
+7. **Kategori Produk**:
+   - Kolom `category` di tabel `products`.
+   - Filter Chips di halaman Produk.
+   - Chips di form Create/Update.
+8. **AR Reminder (Tagihan Belum Lunas)** (`/app/more/ar-reminder`):
+   - Kartu merah total piutang keseluruhan.
+   - Daftar pesanan `unpaid`/`partial`.
+   - Tombol "Tagih" → WA dengan pesan tagihan sopan.
+9. **Logo & Footer Nota PDF**:
+   - Upload logo ke Supabase Storage (`business-logos`).
+   - Kolom `logo_url` & `receipt_footer` di tabel `businesses`.
+   - Logo otomatis muncul di PDF Invoice.
+   - Footer custom di bagian bawah nota.
+10. **Pagination & Server-Side Search**:
+    - 4 RPC baru: `list_orders_page`, `list_transactions_page`, `list_customers_page`, `list_products_page`.
+    - Search bar *debounced* 400ms di 4 halaman.
+    - Filter Chips (Status/Kategori/Tipe).
+    - Tombol "Muat Lebih Banyak" (20 item per halaman).
+    - Info "Menampilkan X dari Y".
+
+---
+
+### 🛠️ 17.3 Perubahan Teknis Penting
+
+#### Migrasi Database Baru (v1.1.0)
+| File | Deskripsi |
+|---|---|
+| `0806_inventory_items.sql` | Tabel `inventory_items` + RLS |
+| `0807_top_products_rpc.sql` | RPC `get_top_products` |
+| `0808_business_logo_footer.sql` | Kolom `logo_url`, `receipt_footer` + Storage bucket |
+| `0809_backup_rpc.sql` | RPC `get_business_backup` |
+| `0810_product_category.sql` | Kolom `category` di `products` |
+| `0811_upsert_product_category.sql` | Update RPC `upsert_product` |
+| `0812_staff_sales_rpc.sql` | RPC `get_sales_by_staff` |
+| `0813_orders_pagination_rpc.sql` | RPC `list_orders_page` |
+| `0814_transactions_pagination_rpc.sql` | RPC `list_transactions_page` |
+| `0815_customers_pagination_rpc.sql` | RPC `list_customers_page` |
+| `0816_products_pagination_rpc.sql` | RPC `list_products_page` |
+
+#### File & Folder Baru
+- `lib/features/inventory/` (Modul Inventaris)
+- `lib/features/audit/` (Modul Audit Log)
+- `lib/features/backup/` (Modul Backup)
+- `lib/features/reports/product_report_*.dart`, `staff_report_*.dart`
+- `lib/features/orders/ar_reminder_*.dart`
+- `lib/features/*/paginated_*.dart` (4 file pagination)
+- `lib/shared/utils/format.dart` (Helper `formatIdr` & `formatDateId`)
+
+#### ⚠️ Breaking Changes / Perhatian untuk AI Berikutnya
+1. **`ordersProvider` vs `paginatedOrdersProvider`**:
+   - `ordersProvider` (lama) **TETAP DIPERTAHANKAN** untuk Dashboard, AR Reminder, dan Order Detail (mereka butuh *real-time* semua data).
+   - `paginatedOrdersProvider` (baru) **HANYA untuk halaman Pesanan** (UI List).
+   - Jangan hapus `ordersProvider`!
+2. **`Order.customerName`**: Ditambahkan opsional di model. Hanya diisi oleh RPC pagination (dari `LEFT JOIN customers`).
+3. **`file_picker`**: Harus versi `^8.0.0` (bukan 10.x) karena API `FilePicker.platform.pickFiles()` sudah berubah di 10.x.
+4. **Drift/SQLite**: `OfflineProductsService` sudah di-update dengan `category`. Jika menambah field baru lagi ke `Product`, wajib update `_toMap` dan `LocalProductsRepo` (bump `schemaVersion`).
+5. **Format Helper**: Gunakan `formatIdr()` dan `formatDateId()` dari `lib/shared/utils/format.dart` — **JANGAN** buat `_fmtIdr` lokal baru.
+
+### 📊 Status Saat Ini
+- `flutter analyze`: **No issues found!**
+- Database: Semua migrasi sudah di-push ke Supabase Cloud.
+- Belum di-deploy ulang ke Netlify sejak v1.0.3.
+- Aplikasi sudah *scalable* (pagination di 4 halaman utama).
+
