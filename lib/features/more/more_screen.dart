@@ -120,6 +120,16 @@ class MoreScreen extends ConsumerWidget {
             subtitle: 'Pengingat piutang pelanggan',
             onTap: () => context.go('/app/more/ar-reminder'),
           ),
+
+          _buildMenuItem(
+            context,
+            icon: Icons.savings_outlined,
+            iconBgColor: Colors.amber.withValues(alpha: 0.1),
+            iconColor: Colors.amber.shade700,
+            title: 'Kelebihan Bayar',
+            subtitle: 'History kelebihan dari pelanggan',
+            onTap: () => context.go('/app/more/excess-history'),
+          ),
           _buildMenuItem(
             context,
             icon: Icons.swap_horiz,

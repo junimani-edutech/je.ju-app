@@ -229,4 +229,21 @@ class OfflineCustomersService implements CustomersService {
     // Hanya dipanggil dispatcher saat online.
     await _remote.upsert(customer);
   }
+
+  @override
+  Future<bool> canHardDelete(String id) async {
+    if (!_isOnline()) {
+      throw Exception('Hapus permanen memerlukan koneksi internet.');
+    }
+    return _remote.canHardDelete(id);
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    if (!_isOnline()) {
+      throw Exception('Hapus permanen memerlukan koneksi internet.');
+    }
+    await _remote.delete(id);
+    // Note: data lokal akan refresh otomatis saat list() dipanggil berikutnya.
+  }
 }

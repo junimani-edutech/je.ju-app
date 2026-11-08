@@ -3,6 +3,7 @@ class InventoryItem {
   final String businessId;
   final String name;
   final String? category;
+  final String? categoryId;
   final String unit;
   final double currentStock;
   final double minStock;
@@ -14,6 +15,7 @@ class InventoryItem {
     required this.businessId,
     required this.name,
     this.category,
+    this.categoryId,
     required this.unit,
     required this.currentStock,
     required this.minStock,
@@ -28,6 +30,7 @@ class InventoryItem {
     businessId: m['business_id'] as String,
     name: m['name'] as String,
     category: m['category'] as String?,
+    categoryId: m['category_id'] as String?,
     unit: m['unit'] as String,
     currentStock: (m['current_stock'] as num).toDouble(),
     minStock: (m['min_stock'] as num).toDouble(),
@@ -39,6 +42,7 @@ class InventoryItem {
     'business_id': businessId,
     'name': name,
     'category': category,
+    'category_id': categoryId,
     'unit': unit,
     'current_stock': currentStock,
     'min_stock': minStock,

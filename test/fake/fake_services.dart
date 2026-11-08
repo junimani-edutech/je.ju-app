@@ -263,6 +263,14 @@ class FakeCustomersService implements CustomersService {
   }
 
   @override
+  Future<bool> canHardDelete(String id) async => true;
+
+  @override
+  Future<void> delete(String id) async {
+    _store.removeWhere((c) => c.id == id);
+  }
+
+  @override
   Future<void> upsert(Customer c) async {
     final idx = _store.indexWhere((x) => x.id == c.id);
     if (idx >= 0) {

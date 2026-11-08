@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'paginated_transactions_providers.dart';
+import '../transactions/presentation/income_form_sheet.dart';
+import '../transactions/presentation/expense_form_sheet.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   final String? typeFilter;
@@ -227,6 +229,39 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'tx_catat_fab',
+        onPressed: () {
+          showModalBottomSheet(
+            context: context,
+            builder: (ctx) => SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.arrow_downward, color: Colors.green),
+                    title: const Text('Catat Pemasukan'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => const IncomeFormSheet());
+                    },
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.arrow_upward, color: Colors.red),
+                    title: const Text('Catat Pengeluaran'),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => const ExpenseFormSheet());
+                    },
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+        icon: const Icon(Icons.add),
+        label: const Text('Catat'),
       ),
     );
   }

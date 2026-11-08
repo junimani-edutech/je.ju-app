@@ -10,13 +10,17 @@ import '../features/dashboard/dashboard_screen.dart';
 import '../features/finance/transactions_screen.dart';
 import '../features/finance/transfers_screen.dart';
 import '../features/inventory/inventory_screen.dart';
+import '../features/inventory/inventory_detail_screen.dart';
+import '../features/inventory/inventory_categories_screen.dart';
 import '../features/orders/ar_reminder_screen.dart';
+import '../features/payments/excess_history_screen.dart';
 import '../features/backup/backup_screen.dart';
 import '../features/audit/audit_log_screen.dart'; // ✅ Import Inventaris
 import '../features/members/accept_invite_screen.dart';
 import '../features/members/members_screen.dart';
 import '../features/offline/sync_status_screen.dart';
 import '../features/products/products_screen.dart';
+import '../features/products/product_categories_screen.dart';
 import '../features/more/more_screen.dart';
 import '../features/onboarding/onboarding_screen.dart';
 import '../features/orders/orders_screen.dart';
@@ -81,10 +85,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   ),
                   
                   GoRoute(path: 'products', builder: (_, _) => const ProductsScreen()),
+                  GoRoute(path: 'product-categories', builder: (_, _) => const ProductCategoriesScreen()),
                   
                   // ✅ ROUTE INVENTARIS BARU
                   GoRoute(path: 'inventory', builder: (_, _) => const InventoryScreen()),
+                  GoRoute(path: 'inventory-categories', builder: (_, _) => const InventoryCategoriesScreen()),
+                  GoRoute(
+                    path: 'inventory-detail/:id',
+                    builder: (_, state) => InventoryDetailScreen(itemId: state.pathParameters['id']!),
+                  ),
                   GoRoute(path: 'ar-reminder', builder: (_, _) => const ArReminderScreen()),
+                  GoRoute(path: 'excess-history', builder: (_, _) => const ExcessHistoryScreen()),
                   GoRoute(path: 'backup', builder: (_, _) => const BackupScreen()),
                   GoRoute(path: 'audit-log', builder: (_, _) => const AuditLogScreen()),
                   

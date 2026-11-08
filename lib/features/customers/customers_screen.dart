@@ -72,6 +72,59 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
     await ref.read(customersProvider.notifier).restore(c.id);
   }
 
+  Future<void> _confirmHardDelete(Customer c) async {
+    try {
+      final canDelete = await ref.read(customersProvider.notifier).canHardDelete(c.id);
+      if (!canDelete) {
+        if (mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Tidak Bisa Hapus'),
+              content: Text('"${c.name}" sudah pernah dipakai di pesanan. Untuk menjaga integritas laporan, gunakan opsi "Arsipkan" saja.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Mengerti')),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+
+      if (!mounted) return;
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Hapus Permanen?'),
+          content: Text('"${c.name}" akan dihapus selamanya. Tindakan ini tidak dapat dibatalkan.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Hapus Permanen'),
+            ),
+          ],
+        ),
+      );
+
+      if (ok == true) {
+        await ref.read(customersProvider.notifier).delete(c.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Pelanggan dihapus permanen'), backgroundColor: Colors.green),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -196,6 +249,7 @@ class _CustomersScreenState extends ConsumerState<CustomersScreen> {
               onTap: canWrite ? () => _openEdit(c) : null,
               onArchive: canWrite ? () => _archive(c) : null,
               onRestore: canWrite ? () => _restore(c) : null,
+              onDelete: canWrite ? () => _confirmHardDelete(c) : null,
             );
           },
         );

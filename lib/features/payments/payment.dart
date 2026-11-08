@@ -16,6 +16,7 @@ class Payment {
     this.confirmedAt,
     this.cancelledAt,
     this.cancelReason,
+    this.appliedAmount,
   });
 
   final String id;
@@ -34,6 +35,7 @@ class Payment {
   final DateTime? confirmedAt;
   final DateTime? cancelledAt;
   final String? cancelReason;
+  final int? appliedAmount;
 
   bool get isReversal => reversalOfPaymentId != null;
   bool get isConfirmed => status == 'confirmed';
@@ -41,6 +43,17 @@ class Payment {
 
   /// Efektif terhadap paid_amount: reversal mengurangi.
   int get signedAmount => isReversal ? -amount : amount;
+
+  /// Bagian dari amount yang masuk ke pesanan (bukan kelebihan).
+  int get appliedAmountOrFull => appliedAmount ?? amount;
+
+  /// Kelebihan bayar yang tercatat di tabel payment_excesses.
+  int get excessAmount {
+    final e = amount - appliedAmountOrFull;
+    return e > 0 ? e : 0;
+  }
+
+  bool get hasExcess => excessAmount > 0;
 
   factory Payment.fromMap(Map<String, dynamic> m) => Payment(
     id: m['id'] as String,
@@ -63,6 +76,7 @@ class Payment {
         ? null
         : DateTime.parse(m['cancelled_at'] as String),
     cancelReason: m['cancel_reason'] as String?,
+    appliedAmount: (m['applied_amount'] as num?)?.toInt(),
   );
 }
 

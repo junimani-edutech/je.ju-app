@@ -8,12 +8,14 @@ import '../../core/theme/theme_mode_provider.dart';
 import '../../shared/utils/format.dart'; // ✅ Gunakan helper format
 import 'widgets/cash_flow_chart.dart';
 import 'dashboard_providers.dart';
-import '../transactions/presentation/expense_form_sheet.dart'; 
-import '../transactions/presentation/income_form_sheet.dart'; // ✅ Form Pemasukan Baru
+import '../transactions/presentation/expense_form_sheet.dart';
+import '../orders/widgets/order_form_sheet.dart'; 
+ // ✅ Form Pemasukan Baru
 import '../../shared/widgets/offline_banner.dart';
 import '../offline/widgets/sync_queue_badge.dart';
 import '../finance/finance_models.dart';
 import '../finance/finance_providers.dart';
+import '../payments/excess_history_providers.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -29,6 +31,7 @@ class DashboardScreen extends ConsumerWidget {
     final orderStats = ref.watch(orderStatsProvider);
     final todayRev = ref.watch(todayRevenueProvider);
     final lowStock = ref.watch(lowStockItemsProvider);
+    final excessAsync = ref.watch(totalExcessProvider);
 
     final summary = summaryAsync.value ?? const CashFlowSummary(income: 0, expense: 0, paymentsNet: 0, net: 0);
 
@@ -52,37 +55,26 @@ class DashboardScreen extends ConsumerWidget {
         ],
       ),
       // ✅ FAB DIUBAH: Bisa Pemasukan atau Pengeluaran
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          showModalBottomSheet(
-            context: context,
-            builder: (ctx) => SafeArea(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  ListTile(
-                    leading: const Icon(Icons.arrow_downward, color: Colors.green),
-                    title: const Text('Catat Pemasukan'),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => const IncomeFormSheet());
-                    },
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.arrow_upward, color: Colors.red),
-                    title: const Text('Catat Pengeluaran'),
-                    onTap: () {
-                      Navigator.pop(ctx);
-                      showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => const ExpenseFormSheet());
-                    },
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Catat'),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.small(
+            heroTag: 'expense_fab',
+            onPressed: () => showModalBottomSheet(context: context, isScrollControlled: true, builder: (_) => const ExpenseFormSheet()),
+            tooltip: 'Catat Pengeluaran',
+            backgroundColor: Colors.red.shade100,
+            foregroundColor: Colors.red.shade900,
+            child: const Icon(Icons.remove),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: 'order_fab',
+            onPressed: () => OrderFormSheet.show(context),
+            icon: const Icon(Icons.add),
+            label: const Text('Buat Pesanan'),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -144,19 +136,75 @@ class DashboardScreen extends ConsumerWidget {
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _StatCard(label: 'Pemasukan', value: formatIdr(summary.income), icon: Icons.trending_up, color: Theme.of(context).colorScheme.primary, onTap: () => context.go('/app/more/transactions?type=income&period=this_month'))),
+                Expanded(child: _StatCard(
+                  label: 'Omzet Bersih',
+                  value: formatIdr(summary.omzetBersih),
+                  icon: Icons.shopping_bag_outlined,
+                  color: Colors.blue,
+                  onTap: () => context.go('/app/orders'),
+                )),
                 const SizedBox(width: 12),
-                Expanded(child: _StatCard(label: 'Pengeluaran', value: formatIdr(summary.expense), icon: Icons.trending_down, color: Theme.of(context).colorScheme.error, onTap: () => context.go('/app/more/transactions?type=expense&period=this_month'))),
+                Expanded(child: _StatCard(
+                  label: 'Laba Kotor',
+                  value: formatIdr(summary.labaKotor),
+                  icon: Icons.trending_up,
+                  color: summary.labaKotor >= 0 ? Colors.green : Colors.red,
+                  bold: true,
+                  onTap: () => context.go('/app/more/reports'),
+                )),
               ],
             ),
             const SizedBox(height: 12),
             Row(
               children: [
-                Expanded(child: _StatCard(label: 'Pembayaran pesanan', value: formatIdr(summary.paymentsNet), icon: Icons.payments_outlined, color: Colors.orange, onTap: () => context.go('/app/more/payments'))),
+                Expanded(child: _StatCard(
+                  label: 'Uang Masuk (Cash)',
+                  value: formatIdr(summary.cashInHand),
+                  icon: Icons.account_balance_wallet_outlined,
+                  color: Colors.teal,
+                  onTap: () => context.go('/app/more/transactions?period=this_month'),
+                )),
                 const SizedBox(width: 12),
-                Expanded(child: _StatCard(label: 'Arus kas bersih', value: formatIdr(summary.net), icon: Icons.account_balance_wallet_outlined, color: Colors.green, bold: true, onTap: () => context.go('/app/more/transactions?period=this_month'))),
+                Expanded(child: _StatCard(
+                  label: 'Piutang',
+                  value: formatIdr(summary.piutang),
+                  icon: Icons.pending_actions_outlined,
+                  color: summary.piutang > 0 ? Colors.orange : Colors.grey,
+                  onTap: () => context.go('/app/more/ar-reminder'),
+                )),
               ],
             ),
+            const SizedBox(height: 12),
+            // Detail kecil: Ongkir sebagai info
+            if (summary.totalOngkir > 0)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.local_shipping_outlined, size: 16, color: Colors.grey.shade600),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Ongkir (pass-through): ${formatIdr(summary.totalOngkir)}',
+                        style: TextStyle(fontSize: 11, color: Colors.grey.shade700),
+                      ),
+                    ),
+                    if (excessAsync.value != null && excessAsync.value! > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(color: Colors.amber.shade100, borderRadius: BorderRadius.circular(6)),
+                        child: Text(
+                          'Kelebihan: ${formatIdr(excessAsync.value!)}',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.amber.shade900),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
             const SizedBox(height: 24),
             Text('Arus Kas (7 Hari Terakhir)', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),

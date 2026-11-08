@@ -10,6 +10,7 @@ class CustomerListTile extends StatelessWidget {
     this.onTap,
     this.onArchive,
     this.onRestore,
+    this.onDelete,
   });
 
   final Customer customer;
@@ -17,6 +18,7 @@ class CustomerListTile extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onArchive;
   final VoidCallback? onRestore;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +49,9 @@ class CustomerListTile extends StatelessWidget {
                     case 'restore':
                       onRestore?.call();
                       break;
+                    case 'delete':
+                      onDelete?.call();
+                      break;
                   }
                 },
                 itemBuilder: (_) {
@@ -65,6 +70,18 @@ class CustomerListTile extends StatelessWidget {
                       const PopupMenuItem(
                         value: 'archive',
                         child: Text('Arsipkan'),
+                      ),
+                    );
+                  }
+                  if (onDelete != null) {
+                    items.add(const PopupMenuDivider());
+                    items.add(
+                      const PopupMenuItem(
+                        value: 'delete',
+                        child: Text(
+                          'Hapus Permanen',
+                          style: TextStyle(color: Colors.red),
+                        ),
                       ),
                     );
                   }

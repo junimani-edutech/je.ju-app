@@ -13,11 +13,20 @@ class SupabaseInventoryService {
     return (res as List).map((e) => InventoryItem.fromMap(e)).toList();
   }
 
-  Future<void> upsert(InventoryItem item) async {
-    await _client.from('inventory_items').upsert(item.toMap());
+  Future<InventoryItem> upsert(InventoryItem item) async {
+    final res = await _client
+        .from('inventory_items')
+        .upsert(item.toMap())
+        .select()
+        .single();
+    return InventoryItem.fromMap(res);
   }
 
   Future<void> delete(String id) async {
     await _client.from('inventory_items').delete().eq('id', id);
+  }
+
+  Future<void> setActive(String id, bool active) async {
+    await _client.from('inventory_items').update({'is_active': active}).eq('id', id);
   }
 }

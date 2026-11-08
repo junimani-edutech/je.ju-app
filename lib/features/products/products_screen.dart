@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../core/providers.dart';
 import 'paginated_products_providers.dart';
+import 'product_categories_providers.dart';
 import 'products_providers.dart';
 import 'widgets/product_form_sheet.dart';
 
@@ -14,20 +16,31 @@ class ProductsScreen extends ConsumerStatefulWidget {
   ConsumerState<ProductsScreen> createState() => _ProductsScreenState();
 }
 
-class _ProductsScreenState extends ConsumerState<ProductsScreen> {
+class _ProductsScreenState extends ConsumerState<ProductsScreen>
+    with SingleTickerProviderStateMixin {
   final _searchCtrl = TextEditingController();
   Timer? _debounce;
-  String? _categoryFilter;
+  String? _categoryId;
   bool _isArchivedTab = false;
+  late TabController _tabController;
 
-  final List<String> _categories = [
-    'Semua', 'Umum', 'Cuci Kering', 'Cuci Setrika', 'Setrika', 'Bed Cover', 'Sepatu', 'Lainnya'
-  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        _switchTab(_tabController.index == 1);
+      }
+    });
+  }
 
   @override
   void dispose() {
     _debounce?.cancel();
     _searchCtrl.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -49,12 +62,21 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
     final theme = Theme.of(context);
     final canWrite = ref.watch(currentMemberProvider).value?.canWrite ?? false;
     final async = ref.watch(paginatedProductsProvider);
+    final categoriesAsync = ref.watch(productCategoriesProvider);
+    final categories = categoriesAsync.value ?? [];
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Produk & Jasa', style: TextStyle(fontWeight: FontWeight.bold)),
+        actions: [
+          IconButton(
+            tooltip: 'Kelola Kategori',
+            icon: const Icon(Icons.category_outlined),
+            onPressed: () => context.go('/app/more/product-categories'),
+          ),
+        ],
         bottom: TabBar(
-          onTap: (index) => _switchTab(index == 1),
+          controller: _tabController,
           tabs: const [
             Tab(text: 'Aktif'),
             Tab(text: 'Arsip'),
@@ -85,27 +107,38 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
               ),
             ),
           ),
-
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: _categories.map((c) {
-                final isSelected = (_categoryFilter ?? 'Semua') == c;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    label: Text(c),
-                    selected: isSelected,
+          if (categories.isNotEmpty)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                children: [
+                  ChoiceChip(
+                    label: const Text('Semua'),
+                    selected: _categoryId == null,
                     onSelected: (_) {
-                      setState(() => _categoryFilter = c);
-                      ref.read(paginatedProductsProvider.notifier).setCategory(c);
+                      setState(() => _categoryId = null);
+                      ref.read(paginatedProductsProvider.notifier).setCategoryId(null);
                     },
                   ),
-                );
-              }).toList(),
+                  const SizedBox(width: 8),
+                  ...categories.map((c) {
+                    final isSelected = _categoryId == c.id;
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(c.name),
+                        selected: isSelected,
+                        onSelected: (_) {
+                          setState(() => _categoryId = c.id);
+                          ref.read(paginatedProductsProvider.notifier).setCategoryId(c.id);
+                        },
+                      ),
+                    );
+                  }),
+                ],
+              ),
             ),
-          ),
           const SizedBox(height: 8),
           Expanded(
             child: async.when(
@@ -208,6 +241,9 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                       await ref.read(productsProvider.notifier).restore(p.id);
                       ref.read(paginatedProductsProvider.notifier).refresh();
                       break;
+                    case 'delete':
+                      await _confirmHardDelete(context, ref, p);
+                      break;
                   }
                 },
                 itemBuilder: (_) => [
@@ -216,6 +252,11 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
                     const PopupMenuItem(value: 'archive', child: Text('Arsipkan'))
                   else
                     const PopupMenuItem(value: 'restore', child: Text('Pulihkan')),
+                  const PopupMenuDivider(),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Text('Hapus Permanen', style: TextStyle(color: Colors.red)),
+                  ),
                 ],
               )
             : null,
@@ -225,6 +266,56 @@ class _ProductsScreenState extends ConsumerState<ProductsScreen> {
         } : null,
       ),
     );
+  }
+
+  Future<void> _confirmHardDelete(BuildContext context, WidgetRef ref, dynamic product) async {
+    try {
+      final canDelete = await ref.read(productsProvider.notifier).canHardDelete(product.id);
+      if (!canDelete) {
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('Tidak Bisa Hapus'),
+              content: const Text('Produk ini sudah pernah dipakai di pesanan. Untuk menjaga integritas laporan, gunakan opsi "Arsipkan" saja.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Mengerti')),
+              ],
+            ),
+          );
+        }
+        return;
+      }
+
+      if (!context.mounted) return;
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Hapus Permanen?'),
+          content: Text('"${product.name}" akan dihapus selamanya. Tindakan ini tidak dapat dibatalkan.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Batal')),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(backgroundColor: Colors.red),
+              child: const Text('Hapus'),
+            ),
+          ],
+        ),
+      );
+
+      if (ok == true) {
+        await ref.read(productsProvider.notifier).delete(product.id);
+        ref.read(paginatedProductsProvider.notifier).refresh();
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Produk dihapus permanen')));
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Gagal: $e'), backgroundColor: Colors.red));
+      }
+    }
   }
 
   Widget _empty(ThemeData theme, bool isSearching) {

@@ -95,4 +95,15 @@ class SupabaseCustomersService implements CustomersService {
       'updated_at': c.updatedAt.toIso8601String(),
     }, onConflict: 'id');
   }
+
+  @override
+  Future<bool> canHardDelete(String id) async {
+    final res = await _client.rpc('can_hard_delete_customer', params: {'p_id': id});
+    return res as bool;
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    await _client.from('customers').delete().eq('id', id);
+  }
 }

@@ -67,6 +67,7 @@ class OfflineProductsService implements ProductsService {
     required int price,
     String? description,
     String? category,
+    String? categoryId,
   }) async {
     if (_isOnline()) {
       try {
@@ -76,6 +77,7 @@ class OfflineProductsService implements ProductsService {
           price: price,
           description: description,
           category: category,
+          categoryId: categoryId,
         );
         await _local.upsert(r);
         return r;
@@ -89,6 +91,7 @@ class OfflineProductsService implements ProductsService {
       price: price,
       description: description,
       category: category ?? 'Umum',
+      categoryId: categoryId,
       status: 'active',
       createdAt: now,
       updatedAt: now,
@@ -112,6 +115,7 @@ class OfflineProductsService implements ProductsService {
     required int price,
     String? description,
     String? category,
+    String? categoryId,
   }) async {
     if (_isOnline()) {
       try {
@@ -121,6 +125,7 @@ class OfflineProductsService implements ProductsService {
           price: price,
           description: description,
           category: category,
+          categoryId: categoryId,
         );
         await _local.upsert(r);
         return r;
@@ -136,6 +141,7 @@ class OfflineProductsService implements ProductsService {
       price: price,
       description: description,
       category: category ?? existing.category,
+      categoryId: categoryId ?? existing.categoryId,
       status: existing.status,
       createdAt: existing.createdAt,
       updatedAt: now,
@@ -194,4 +200,17 @@ class OfflineProductsService implements ProductsService {
   Future<void> restore(String id) => _setStatus(id, 'active');
   @override
   Future<void> upsert(Product p) async => _remote.upsert(p);
+
+  @override
+  Future<bool> canHardDelete(String id) async {
+    if (!_isOnline()) throw Exception('Hapus permanen memerlukan koneksi internet.');
+    return _remote.canHardDelete(id);
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    if (!_isOnline()) throw Exception('Hapus permanen memerlukan koneksi internet.');
+    await _remote.delete(id);
+    // Note: local data akan refresh saat online berikutnya
+  }
 }

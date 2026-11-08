@@ -27,6 +27,7 @@ class SupabaseProductsService implements ProductsService {
     required int price,
     String? description,
     String? category,
+    String? categoryId,
   }) async {
     final row = await _client
         .from('products')
@@ -36,6 +37,7 @@ class SupabaseProductsService implements ProductsService {
           'price': price,
           'description': description,
           'category': category ?? 'Umum',
+          'category_id': categoryId,
         })
         .select()
         .single();
@@ -49,14 +51,16 @@ class SupabaseProductsService implements ProductsService {
     required int price,
     String? description,
     String? category,
+    String? categoryId,
   }) async {
     final row = await _client
         .from('products')
         .update({
-          'name': name, 
-          'price': price, 
+          'name': name,
+          'price': price,
           'description': description,
           'category': category ?? 'Umum',
+          'category_id': categoryId,
         })
         .eq('id', id)
         .select()
@@ -86,7 +90,19 @@ class SupabaseProductsService implements ProductsService {
         'p_description': p.description,
         'p_status': p.status,
         'p_category': p.category ?? 'Umum',
+        'p_category_id': p.categoryId,
       },
     );
+  }
+
+  @override
+  Future<bool> canHardDelete(String id) async {
+    final res = await _client.rpc('can_hard_delete_product', params: {'p_id': id});
+    return res as bool;
+  }
+
+  @override
+  Future<void> delete(String id) async {
+    await _client.from('products').delete().eq('id', id);
   }
 }

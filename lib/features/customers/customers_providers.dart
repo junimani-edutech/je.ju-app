@@ -82,6 +82,15 @@ class CustomersNotifier extends AsyncNotifier<List<Customer>> {
     await ref.read(customersServiceProvider).restore(id);
     await _reload();
   }
+
+  Future<bool> canHardDelete(String id) async {
+    return ref.read(customersServiceProvider).canHardDelete(id);
+  }
+
+  Future<void> delete(String id) async {
+    await ref.read(customersServiceProvider).delete(id);
+    await _reload();
+  }
 }
 
 final customersProvider =

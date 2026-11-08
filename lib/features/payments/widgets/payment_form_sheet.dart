@@ -37,6 +37,18 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
     return r < 0 ? 0 : r;
   }
 
+  int get _enteredAmount => int.tryParse(_amountCtrl.text.trim()) ?? 0;
+
+  int get _previewApplied {
+    final a = _enteredAmount;
+    return a <= _remaining ? a : _remaining;
+  }
+
+  int get _previewExcess {
+    final a = _enteredAmount;
+    return a > _remaining ? a - _remaining : 0;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -119,12 +131,45 @@ class _PaymentFormSheetState extends ConsumerState<PaymentFormSheet> {
                 controller: _amountCtrl,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(labelText: 'Nominal *'),
+                onChanged: (_) => setState(() {}),
                 validator: (v) {
                   final n = int.tryParse((v ?? '').trim());
                   if (n == null || n <= 0) return 'Nominal harus > 0';
                   return null;
                 },
               ),
+              if (_enteredAmount > 0) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Masuk ke pesanan', style: TextStyle(fontSize: 12)),
+                          Text('Rp $_previewApplied', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      if (_previewExcess > 0) ...[
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Kelebihan (Pemasukan Lain)', style: TextStyle(fontSize: 12, color: Colors.orange.shade700)),
+                            Text('Rp $_previewExcess', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.orange.shade700)),
+                          ],
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               DropdownButtonFormField<String?>(
                 key: const Key('payment_form_method'),

@@ -34,6 +34,7 @@ class PaginatedProductsResult {
 class PaginatedProductsNotifier extends AsyncNotifier<PaginatedProductsResult> {
   String? _search;
   String? _category;
+  String? _categoryId;
   bool _includeArchived = false;
   int _page = 0;
   static const int _pageSize = 20;
@@ -54,6 +55,7 @@ class PaginatedProductsNotifier extends AsyncNotifier<PaginatedProductsResult> {
       'p_business_id': biz.id,
       'p_search': _search,
       'p_category': _category,
+      'p_category_id': _categoryId,
       'p_include_archived': _includeArchived,
       'p_page': page,
       'p_page_size': _pageSize,
@@ -71,6 +73,15 @@ class PaginatedProductsNotifier extends AsyncNotifier<PaginatedProductsResult> {
 
   Future<void> setCategory(String? category) async {
     _category = category;
+    _categoryId = null;
+    _page = 0;
+    state = const AsyncLoading();
+    state = await AsyncValue.guard(() => _load(0));
+  }
+
+  Future<void> setCategoryId(String? categoryId) async {
+    _categoryId = categoryId;
+    _category = null;
     _page = 0;
     state = const AsyncLoading();
     state = await AsyncValue.guard(() => _load(0));

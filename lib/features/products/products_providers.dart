@@ -36,6 +36,7 @@ class ProductsNotifier extends AsyncNotifier<List<Product>> {
     required int price,
     String? description,
     String? category,
+    String? categoryId,
   }) async {
     final biz = await ref.read(currentBusinessProvider.future);
     if (biz == null) throw StateError('Tidak ada bisnis aktif');
@@ -47,6 +48,7 @@ class ProductsNotifier extends AsyncNotifier<List<Product>> {
           price: price,
           description: description,
           category: category,
+          categoryId: categoryId,
         );
     await _reload();
   }
@@ -57,10 +59,11 @@ class ProductsNotifier extends AsyncNotifier<List<Product>> {
     required int price,
     String? description,
     String? category,
+    String? categoryId,
   }) async {
     await ref
         .read(productsServiceProvider)
-        .update(id: id, name: name, price: price, description: description, category: category);
+        .update(id: id, name: name, price: price, description: description, category: category, categoryId: categoryId);
     await _reload();
   }
 
@@ -71,6 +74,15 @@ class ProductsNotifier extends AsyncNotifier<List<Product>> {
 
   Future<void> restore(String id) async {
     await ref.read(productsServiceProvider).restore(id);
+    await _reload();
+  }
+
+  Future<bool> canHardDelete(String id) async {
+    return ref.read(productsServiceProvider).canHardDelete(id);
+  }
+
+  Future<void> delete(String id) async {
+    await ref.read(productsServiceProvider).delete(id);
     await _reload();
   }
 }

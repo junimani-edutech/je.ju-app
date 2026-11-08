@@ -30,4 +30,6 @@ abstract class CustomersService {
   /// Upsert by id. Dipakai dispatcher offline untuk push antrean
   /// secara idempoten (insert-or-update by primary key).
   Future<void> upsert(Customer customer);
+  Future<bool> canHardDelete(String id);
+  Future<void> delete(String id);
 }
