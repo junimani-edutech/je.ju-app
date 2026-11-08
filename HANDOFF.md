@@ -500,3 +500,71 @@ PayNote (JeJu-App) dibangun untuk memecahkan **3 masalah utama UMKM Indonesia**,
 - Belum di-deploy ulang ke Netlify sejak v1.0.3.
 - Aplikasi sudah *scalable* (pagination di 4 halaman utama).
 
+
+---
+
+## 18. FASE v1.2.0 — STOCK MOVEMENT & DYNAMIC CATEGORY (Nov 2026)
+
+### 🎯 Tujuan Fase Ini
+Menghidupkan inventaris (stok tidak lagi angka mati) + mengizinkan user custom kategori (tidak hardcoded).
+
+### 🚀 Fitur Baru
+
+#### A. Stock Movement System
+1. **Tabel `stock_movements`** — ledger setiap perubahan stok.
+2. **Trigger DB otomatis** — `current_stock` = `SUM(quantity)` dari movements. Tidak mungkin drift.
+3. **Backfill otomatis** — stok lama (existing) → 1 movement `initial`.
+4. **4 tipe movement** — `purchase`, `usage`, `waste`, `adjustment`.
+5. **Halaman Detail Item** (`/app/more/inventory-detail/:id`):
+   - Stok besar + info (min, kategori, harga).
+   - 4 tombol aksi cepat (Stok Masuk, Pemakaian, Rusak/Basi, Penyesuaian).
+   - **Timeline** riwayat movement (icon + warna per tipe).
+6. **Form Movement** — pilih tipe via chips, input qty, catatan opsional.
+7. **Edit Form** — field stok disabled saat mode edit ("Ubah via Pergerakan Stok").
+
+#### B. Dynamic Category Management
+1. **Tabel `inventory_categories`** & **`product_categories`** — terpisah (domain berbeda).
+2. **Cascade rename trigger** — rename kategori → otomatis update semua item/produk.
+3. **Halaman Kelola Kategori** (inventory & products):
+   - List + item count per kategori.
+   - CRUD (tambah/edit/hapus).
+   - Validasi hapus: tidak bisa hapus jika masih dipakai.
+4. **Inline Add Kategori** — di form inventory & produk, tombol "+ Kategori Baru".
+5. **Filter Chips Dinamis** — chips diambil dari DB, bukan hardcoded.
+6. **Seed default** — 5 kategori inventory, 7 kategori produk otomatis per bisnis.
+
+### 🛠️ Perubahan Teknis
+
+#### Migrasi Database
+| File | Deskripsi |
+|---|---|
+| `0820_inventory_categories.sql` | Tabel kategori inventory + RLS |
+| `0821_stock_movements.sql` | Tabel + trigger + backfill |
+| `0822_category_seed_and_sync.sql` | Seed + cascade trigger inventory |
+| `0823_product_categories.sql` | Tabel kategori produk + seed + trigger |
+| `0824_products_pagination_v2.sql` | RPC dengan filter `category_id` |
+| `0825_upsert_product_v2.sql` | RPC upsert dengan `p_category_id` |
+
+#### File & Folder Baru
+- `lib/features/inventory/stock_movement.dart`
+- `lib/features/inventory/stock_movement_service.dart`
+- `lib/features/inventory/stock_movement_providers.dart`
+- `lib/features/inventory/inventory_detail_screen.dart`
+- `lib/features/inventory/inventory_categories_screen.dart`
+- `lib/features/inventory/widgets/stock_movement_form_sheet.dart`
+- `lib/features/products/product_category.dart`
+- `lib/features/products/product_categories_providers.dart`
+- `lib/features/products/product_categories_screen.dart`
+
+#### ⚠️ Breaking Changes
+1. **`Product` model** sekarang punya `categoryId` (opsional, backward-compat).
+2. **`InventoryItem` model** sekarang punya `categoryId`.
+3. **`ProductsService.create/update`** signature bertambah `categoryId` parameter.
+4. **`upsert_product` RPC** bertambah param `p_category_id`.
+5. **`current_stock`** di `inventory_items` sekarang **read-only** dari UI. Update hanya via `stock_movements` insert.
+
+### 📊 Status Saat Ini
+- `flutter analyze`: **No issues found!**
+- Database: Semua migrasi `0820`–`0825` sudah di-push ke Supabase Cloud.
+- Belum di-deploy ulang ke Netlify sejak v1.1.0.
+
